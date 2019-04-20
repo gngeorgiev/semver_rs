@@ -1,6 +1,6 @@
-use failure::{Error, Fail};
 use std::fmt;
 
+#[derive(PartialEq, Clone, Debug)]
 pub enum Operator {
     Gt,
     Lt,
@@ -10,24 +10,25 @@ pub enum Operator {
     Ne,
     StrictEq,
     StrictNe,
+
+    Empty,
 }
 
 impl Operator {
-    pub fn new(s: String) -> Result<Operator, Error> {
-        let op = match s.as_str() {
+    pub fn new<S: Into<String>>(s: S) -> Operator {
+        let s = s.into();
+        match s.as_str() {
             ">" => Operator::Gt,
             "<" => Operator::Lt,
             ">=" => Operator::Gte,
             "<=" => Operator::Lte,
             "=" => Operator::Eq,
-            "" => Operator::Eq,
             "==" => Operator::Eq,
             "!=" => Operator::Ne,
             "===" => Operator::StrictEq,
             "!==" => Operator::StrictNe,
-            _ => return Err(OperatorError::Invalid(s).into()),
-        };
-        Ok(op)
+            _ => Operator::Empty,
+        }
     }
 }
 
@@ -42,14 +43,9 @@ impl fmt::Display for Operator {
             Operator::Ne => "!=",
             Operator::StrictEq => "===",
             Operator::StrictNe => "!==",
+            Operator::Empty => "",
         };
 
         write!(f, "{}", s)
     }
-}
-
-#[derive(Debug, Fail)]
-pub enum OperatorError {
-    #[fail(display = "invalid operator {}", _0)]
-    Invalid(String),
 }
