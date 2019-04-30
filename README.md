@@ -7,7 +7,15 @@ Semantic version parsing and comparison ([semver](https://semver.org/)). The imp
 from node-semver's repo. This should make this crate as good at parsing semver expressions as the
 node package manager.
 
-# Examples
+# Installation
+
+Add this to your `[dependencies]` section in `Cargo.toml`:
+
+```
+semver_rs = "0.1"
+```
+
+# Usage
 
 #### Comparing two versions:
 ```rust
@@ -71,7 +79,7 @@ This shell script basically collects some ranges from random npm packages and co
 | name | satisfies | not_satisfies | errors | average us |
 | ---- | --------- | ------------- | ------ | ---------- |
 | semver_node| 14 | 455 | 1 | 29 |
-| semver_rs | 14 | 455 | 1 | 14 |
+| **semver_rs** | 14 | 455 | 1 | 14 |
 | steveklabnik/semver | 11 | 449 | 10 | 0.6 |
 
 Basically `semver_rs` is faster than `semver_node` and slower than `steveklabnik/semver`. It's also as accurate
@@ -81,5 +89,5 @@ in parsing as `semver_node`, while `steveklabnik/semver` couldn't handle 9 of th
 
 This initial release aims at bringing this package out in the public and also as a baseline in terms of performance.
 From now on performance can be improved upon by keeping compatibility at the absolute maximum. 
-In general the parsing itself algorithm is not optimal at a lot of places. There's a lot of needless string and vector
+In general the parsing algorithm itself is not optimal at a lot of places. There's also a lot of needless string and vector
 allocations at the moment which are leftovers from the prototyping phase of the package, that can be addressed gradually.
