@@ -1,0 +1,13 @@
+[package]
+name = "bench"
+version = "0.1.0"
+authors = ["gngeorgiev <gngeorgiev.it@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+semver = "0.9"
+semver_rs = { path = "../" }
+easybench = "0.1"
+alloc_counter = "0.0.2"
+regex = "1.1"
+clap = "2.33"
