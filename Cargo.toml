@@ -3,6 +3,8 @@ name = "semver_rs"
 version = "0.1.0"
 authors = ["gngeorgiev <gngeorgiev.it@gmail.com>"]
 edition = "2018"
+description = "Semantic version parsing and comparison based on NPM's node-semver package."
+readme = "README.md"
 
 [dependencies]
 lazy_static = "1.1"
