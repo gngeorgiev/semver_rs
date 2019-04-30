@@ -1,11 +1,12 @@
 [package]
 name = "semver_rs"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["gngeorgiev <gngeorgiev.it@gmail.com>"]
 edition = "2018"
 description = "Semantic version parsing and comparison based on NPM's node-semver package."
 readme = "README.md"
 license-file = "LICENSE"
+license = "MIT"
 repository = "https://github.com/gngeorgiev/semver_rs"
 
 [badges]
