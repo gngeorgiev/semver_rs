@@ -77,7 +77,7 @@ impl<'p> Version {
         }
     }
 
-    /// Constructs a version from it's already parsed parts, e.g. `Version::from_parts(1, 2, 3)`.
+    /// Constructs a version from its already parsed parts, e.g. `Version::from_parts(1, 2, 3, None)`.
     pub fn from_parts(major: i32, minor: i32, patch: i32, prerelease: Option<String>) -> Self {
         let prerelease = match prerelease {
             Some(pre) => {
@@ -126,7 +126,6 @@ impl<'p> Version {
     }
 
     fn compare_pre(&self, other: &Self) -> Ordering {
-        //TODO: chain with .then
         if self.prerelease.is_some() && other.prerelease.is_none() {
             Ordering::Less
         } else if self.prerelease.is_none() && other.prerelease.is_some() {

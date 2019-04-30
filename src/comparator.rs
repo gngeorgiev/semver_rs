@@ -12,15 +12,48 @@ use crate::version::Version;
 use std::cmp::Ordering;
 use std::fmt;
 
+/// ComparatorPair is a simple struct that can hold two comparators
+/// it knows how to format its Comparators
+#[derive(Debug)]
+pub(crate) struct ComparatorPair(pub Option<Comparator>, pub Option<Comparator>);
+
+impl fmt::Display for ComparatorPair {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.0.is_some() && self.1.is_none() {
+            write!(f, "{}", self.0.clone().unwrap())
+        } else if self.0.is_some() && self.1.is_some() {
+            write!(f, "{} {}", self.0.clone().unwrap(), self.1.clone().unwrap())
+        } else {
+            Ok(())
+        }
+    }
+}
+
+/// A `Comparator` is composed of an [Operator](crate::operator::Operator) and a [Version](create::version::Version).
+/// Comparators are the building blocks of [Range](crate::range::Range)s
 #[derive(Clone, Debug)]
 pub struct Comparator {
     pub operator: Operator,
     pub version: Version,
+
+    empty: bool,
 }
 
 impl Comparator {
     pub fn empty() -> Self {
-        Self::new(String::new(), None).unwrap()
+        Comparator {
+            operator: Operator::Empty,
+            version: Version::any(), //empty comparator matches any version
+            empty: true,
+        }
+    }
+
+    pub fn from_parts(operator: Operator, version: Version) -> Self {
+        Comparator {
+            operator,
+            version,
+            empty: false,
+        }
     }
 
     pub fn new(comp: String, opts: Option<Options>) -> Result<Self, Error> {
@@ -55,7 +88,11 @@ impl Comparator {
             Version::from_parts(major.parse()?, minor.parse()?, patch.parse()?, prerelease)
         };
 
-        Ok(Comparator { operator, version })
+        Ok(Comparator {
+            operator,
+            version,
+            empty: false,
+        })
     }
 
     pub fn normalize(input: &str, loose: bool) -> String {
@@ -88,7 +125,7 @@ impl Comparator {
                 op = String::new();
             }
 
-            let mut op = Operator::new(op);
+            let mut op = Operator::new(&op);
 
             if is_any_major {
                 if op == Operator::Lt || op == Operator::Gt {
@@ -155,7 +192,7 @@ impl Comparator {
     }
 
     fn replace_tildes(comp: &str, loose: bool) -> String {
-        //TODO: this is not right
+        //TODO: not yet sure why this workaround is needed
         if comp == "~" {
             return String::from("*");
         }
@@ -223,7 +260,7 @@ impl Comparator {
 
     fn replace_carets(comp: &str, loose: bool) -> String {
         if comp == "^" {
-            //TODO:
+            //TODO: not yet sure why this workaround is needed
             return String::from("*");
         }
 
@@ -358,7 +395,11 @@ impl Comparator {
 
 impl fmt::Display for Comparator {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}{}", self.operator, self.version)
+        if !self.empty {
+            write!(f, "{}{}", self.operator, self.version)
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -378,7 +419,7 @@ mod tests {
         ];
         for (input, output) in v {
             let res = Comparator::replace_carets(input, false);
-            assert_eq!(res, output);
+            assert_eq!(output, res);
         }
     }
 
@@ -394,7 +435,7 @@ mod tests {
         ];
         for (input, output) in v {
             let res = Comparator::replace_tildes(input, false);
-            assert_eq!(res, output);
+            assert_eq!(output, res);
         }
     }
 
@@ -403,14 +444,13 @@ mod tests {
         let v = vec![
             (">1", ">=2.0.0"),
             (">1.2", ">=1.3.0"),
-            //            (">1.2.3", ">=1.2.4"), TODO:
             ("<=0.7.x", "<0.8.0"),
             ("<=7.x", "<8.0.0"),
         ];
 
         for (input, output) in v {
             let res = Comparator::replace_xranges(input, false);
-            assert_eq!(res, output);
+            assert_eq!(output, res);
         }
     }
 
@@ -419,7 +459,7 @@ mod tests {
         let v = vec![("*", "")];
         for (input, output) in v {
             let res = Comparator::replace_stars(input);
-            assert_eq!(res, output);
+            assert_eq!(output, res);
         }
     }
 }

@@ -3,7 +3,11 @@ use std::cmp::Ordering;
 use regex::Captures;
 
 pub(crate) fn is_any_version(v: &str) -> bool {
-    v == "" || v == "*" || v.to_lowercase() == "x"
+    v == "" || v == "*" || unicase::eq(v, "x")
+}
+
+pub(crate) fn match_at_index_str<'a>(v: &'a Captures, i: usize) -> &'a str {
+    v.get(i).map_or("", |v| v.as_str())
 }
 
 pub(crate) fn match_at_index(v: &Captures, i: usize) -> String {

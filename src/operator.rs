@@ -15,9 +15,8 @@ pub enum Operator {
 }
 
 impl Operator {
-    pub fn new<S: Into<String>>(s: S) -> Operator {
-        let s = s.into();
-        match s.as_str() {
+    pub fn new(s: &str) -> Operator {
+        match s {
             ">" => Operator::Gt,
             "<" => Operator::Lt,
             ">=" => Operator::Gte,

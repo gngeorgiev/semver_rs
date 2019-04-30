@@ -1,13 +1,14 @@
 use crate::builder::{Builder, Options, Parseable};
-use crate::comparator::Comparator;
+use crate::comparator::{Comparator, ComparatorPair};
 use crate::error::{Error, ErrorKind};
 use crate::expressions::{
     COMPARATOR_LOOSE, COMP_REPLACE_CARETS, RANGE_HYPHEN, RANGE_HYPHEN_LOOSE, RANGE_OR,
     RANGE_TRIM_CARET, RANGE_TRIM_OPERATORS, RANGE_TRIM_TILDE, SPLIT_SPACES,
 };
 use crate::operator::Operator;
-use crate::util::{is_any_version, match_at_index};
+use crate::util::{is_any_version, match_at_index_str};
 use crate::version::Version;
+use std::borrow::Cow;
 
 /// A `version range` is a set of `comparators` which specify versions that satisfy the `range`.
 /// A comparator is composed of an operator and a version. The set of primitive operators is:
@@ -32,8 +33,6 @@ use crate::version::Version;
 /// For example, the range `>=1.2.7 <1.3.0` would match the versions `1.2.7`, `1.2.8`, and `1.2.99`, but not the versions `1.2.6`, `1.3.0`, or `1.1.0`.
 ///
 /// The range `1.2.7 || >=1.2.9 <2.0.0` would match the versions `1.2.7`, `1.2.9`, and `1.4.6`, but not the versions `1.2.8` or `2.0.0`.
-///
-/// Currently the `Comparator` interface is not publicly available but might be exported in the future.
 #[derive(Debug)]
 pub struct Range {
     pub(crate) comparators: Vec<Vec<Comparator>>,
@@ -56,21 +55,30 @@ impl<'p> Parseable<'p> for Range {
         let comparators_opts = opts.clone();
         let comparators_result: Result<Vec<Option<Vec<Comparator>>>, Error> = RANGE_OR
             .split(&range_input)
-            .map(move |range| {
+            .map(move |range: &str| {
                 //1. trim the range
-                let mut range = range.trim().to_owned();
+                let range = range.trim();
+
                 //2. replace hyphens `1.2.3 - 1.2.4` => `>=1.2.3 <=1.2.4`
-                range = Range::replace_hyphens(&range, loose)?;
-                //3. trim the spaces around operators `> 1.2.3 < 1.2.5` => `>1.2.3 <1.2.5`
-                range = Range::trim_operators(&range);
-                //4. trim spaces around the tilde operator `~ 1.2.3` => `~1.2.3`
-                range = Range::trim_tilde(&range);
-                //5. trim spaces around the caret operator `^ 1.2.3` => `^1.2.3`
-                range = Range::trim_caret(&range);
-                //6. trim all the spaces that are left `1.2.3  1.2.4` => `1.2.3 1.2.4`
-                range = Range::trim_spaces(&range);
-                //7. replace the carets and adjust versions `^1.2.3 ---> >=1.2.3 <2.0.0`
-                range = Range::replace_carets(&range)?;
+                let range = if let Some(range) = Range::replace_hyphens(&range, loose)? {
+                    range.to_string()
+                } else if let Some(range) = Range::replace_carets(&range)? {
+                    range.to_string()
+                } else {
+                    //3. trim the spaces around operators `> 1.2.3 < 1.2.5` => `>1.2.3 <1.2.5`
+                    let range = Range::trim_operators(&range);
+
+                    //4. trim spaces around the tilde operator `~ 1.2.3` => `~1.2.3`
+                    let range = Range::trim_tilde(&range);
+
+                    //5. trim spaces around the caret operator `^ 1.2.3` => `^1.2.3`
+                    let range = Range::trim_caret(&range);
+
+                    //6. trim all the spaces that are left `1.2.3  1.2.4` => `1.2.3 1.2.4`
+                    let range = Range::trim_spaces(&range);
+
+                    range.to_string()
+                };
 
                 let comparators_parsed: Vec<String> = range
                     .split(" ")
@@ -84,8 +92,8 @@ impl<'p> Parseable<'p> for Range {
                 }
 
                 // TODO: this split should yield an array with one empty string inside
-                // when used on an empty string, just like in the original npm package
-                // the condition above is a workaround atm
+                // when used on an empty string, just like in the original npm package.
+                // The condition above is a workaround atm
                 let comparators_parsed: Vec<&str> =
                     SPLIT_SPACES.split(&comparators_parsed).collect();
 
@@ -132,216 +140,235 @@ impl<'p> Range {
         Builder::new(range)
     }
 
-    fn trim_spaces(range: &str) -> String {
-        let split: Vec<String> = SPLIT_SPACES.split(range).map(|v| v.to_owned()).collect();
-        split.join(" ")
+    fn trim_spaces(range: &str) -> Cow<str> {
+        //the other regexes won't allocate if they don't match, however this one will always allocate
+        //so we check whether there's a match
+        if SPLIT_SPACES.is_match(range) {
+            //avoid collecting to not allocate an intermediate vec
+            let mut buf = String::new();
+            SPLIT_SPACES.split(range).for_each(|s| {
+                buf.push_str(s);
+                buf.push_str(" ");
+            });
+            buf.pop();
+
+            Cow::Owned(buf)
+        } else {
+            Cow::Borrowed(range)
+        }
     }
 
-    fn trim_caret(range: &str) -> String {
-        RANGE_TRIM_CARET.replace_all(range, "$1^").into()
+    fn trim_caret(range: &str) -> Cow<str> {
+        RANGE_TRIM_CARET.replace_all(range, "$1^")
     }
 
-    fn trim_tilde(range: &str) -> String {
-        RANGE_TRIM_TILDE.replace_all(range, "$1~").into()
+    fn trim_tilde(range: &str) -> Cow<str> {
+        RANGE_TRIM_TILDE.replace_all(range, "$1~")
     }
 
-    fn trim_operators(range: &str) -> String {
-        RANGE_TRIM_OPERATORS.replace_all(range, "$1$2$3").into()
+    fn trim_operators(range: &str) -> Cow<str> {
+        RANGE_TRIM_OPERATORS.replace_all(range, "$1$2$3")
     }
 
-    fn replace_hyphens(range: &str, loose: bool) -> Result<String, Error> {
-        let cap: Vec<_> = match loose {
-            true => RANGE_HYPHEN_LOOSE.captures_iter(range).collect(),
-            false => RANGE_HYPHEN.captures_iter(range).collect(),
+    fn replace_hyphens(range: &str, loose: bool) -> Result<Option<ComparatorPair>, Error> {
+        let mut caps = match loose {
+            true => RANGE_HYPHEN_LOOSE.captures_iter(range),
+            false => RANGE_HYPHEN.captures_iter(range),
         };
-        let cap = match cap.first() {
+        let cap = match caps.next() {
             Some(cap) => cap,
-            None => return Ok(range.to_owned()),
+            None => return Ok(None),
         };
 
-        let mut from = match_at_index(cap, 1);
-        let from_major = match_at_index(cap, 2);
-        let from_minor = match_at_index(cap, 3);
-        let from_patch = match_at_index(cap, 4);
+        let from = match_at_index_str(&cap, 1);
+        let from_major = match_at_index_str(&cap, 2);
+        let from_minor = match_at_index_str(&cap, 3);
+        let from_patch = match_at_index_str(&cap, 4);
 
-        let mut to = match_at_index(cap, 7);
-        let to_major = match_at_index(cap, 8);
-        let to_minor = match_at_index(cap, 9);
-        let to_patch = match_at_index(cap, 10);
-        let to_prerelease = match_at_index(cap, 11);
-
-        if is_any_version(&from_major) {
-            from = String::new();
+        let comparator_from = if is_any_version(&from_major) {
+            Comparator::empty()
         } else if is_any_version(&from_minor) {
-            from = format!("{}{}.0.0", Operator::Gte, from_major);
+            Comparator::from_parts(
+                Operator::Gte,
+                Version::from_parts(from_major.parse()?, 0, 0, None),
+            )
         } else if is_any_version(&from_patch) {
-            from = format!("{}{}.{}.0", Operator::Gte, from_major, from_minor);
+            Comparator::from_parts(
+                Operator::Gte,
+                Version::from_parts(from_major.parse()?, from_minor.parse()?, 0, None),
+            )
         } else {
-            from = format!("{}{}", Operator::Gte, from);
-        }
-
-        if is_any_version(&to_major) {
-            to = String::new();
-        } else if is_any_version(&to_minor) {
-            let to_major = to_major.parse::<usize>()?;
-            to = format!("{}{}.0.0", Operator::Lt, to_major + 1);
-        } else if is_any_version(&to_patch) {
-            let to_minor = to_minor.parse::<usize>()?;
-            to = format!("{}{}.0", Operator::Lt, to_minor + 1);
-        } else if to_prerelease != "" {
-            to = format!(
-                "{}{}.{}.{}-{}",
-                Operator::Lte,
-                to_major,
-                to_minor,
-                to_patch,
-                to_prerelease
-            );
-        } else {
-            to = format!("{}{}", Operator::Lte, to);
-        }
-
-        Ok(format!("{} {}", from, to))
-    }
-
-    fn replace_carets(range: &str) -> Result<String, Error> {
-        let cap = COMP_REPLACE_CARETS.captures_iter(range).collect::<Vec<_>>();
-        let cap = match cap.first() {
-            Some(cap) => cap,
-            None => return Ok(range.to_owned()),
+            Comparator::from_parts(Operator::Gte, Version::new(from).parse()?)
         };
 
-        let major = match_at_index(cap, 1);
-        let minor = match_at_index(cap, 2);
-        let patch = match_at_index(cap, 3);
-        let mut prerelease = match_at_index(cap, 4);
+        let to = match_at_index_str(&cap, 7);
+        let to_major = match_at_index_str(&cap, 8);
+        let to_minor = match_at_index_str(&cap, 9);
+        let to_patch = match_at_index_str(&cap, 10);
+        let to_prerelease = match_at_index_str(&cap, 11);
 
-        if is_any_version(&major) {
-            Ok(String::new())
-        } else if is_any_version(&minor) {
-            let major: usize = major.parse()?;
-            Ok(format!(
-                "{}{}.0.0 {}{}.0.0",
-                Operator::Gte,
-                major,
+        let comparator_to = if is_any_version(&to_major) {
+            Comparator::empty()
+        } else if is_any_version(&to_minor) {
+            let mut to_major = to_major.parse()?;
+            to_major += 1;
+
+            Comparator::from_parts(Operator::Lt, Version::from_parts(to_major, 0, 0, None))
+        } else if is_any_version(&to_patch) {
+            let mut to_minor = to_minor.parse()?;
+            to_minor += 1;
+            Comparator::from_parts(
                 Operator::Lt,
-                major + 1,
-            ))
+                Version::from_parts(to_major.parse()?, to_minor, 0, None),
+            )
+        } else if to_prerelease != "" {
+            Comparator::from_parts(
+                Operator::Lte,
+                Version::from_parts(
+                    to_major.parse()?,
+                    to_minor.parse()?,
+                    to_patch.parse()?,
+                    Some(to_prerelease.to_string()),
+                ),
+            )
+        } else {
+            Comparator::from_parts(Operator::Lte, Version::new(to).parse()?)
+        };
+
+        Ok(Some(ComparatorPair(
+            Some(comparator_from),
+            Some(comparator_to),
+        )))
+    }
+
+    fn replace_carets(range: &str) -> Result<Option<ComparatorPair>, Error> {
+        let mut caps = COMP_REPLACE_CARETS.captures_iter(range);
+        let cap = match caps.next() {
+            Some(cap) => cap,
+            None => return Ok(None),
+        };
+
+        let major = match_at_index_str(&cap, 1);
+        let minor = match_at_index_str(&cap, 2);
+        let patch = match_at_index_str(&cap, 3);
+        let prerelease = match_at_index_str(&cap, 4);
+
+        let mut cmp = ComparatorPair(None, None);
+        if is_any_version(&major) {
+            cmp.0 = Some(Comparator::empty());
+        } else if is_any_version(&minor) {
+            let major = major.parse()?;
+            cmp.0 = Some(Comparator::from_parts(
+                Operator::Gte,
+                Version::from_parts(major, 0, 0, None),
+            ));
+            cmp.1 = Some(Comparator::from_parts(
+                Operator::Lt,
+                Version::from_parts(major + 1, 0, 0, None),
+            ));
         } else if is_any_version(&patch) {
-            let minor: usize = minor.parse()?;
-            if major == "0" {
-                Ok(format!(
-                    "{}{}.{}.0 {}{}.{}.0",
+            let major = major.parse()?;
+            let minor = minor.parse()?;
+            if major == 0 {
+                cmp.0 = Some(Comparator::from_parts(
                     Operator::Gte,
-                    major,
-                    minor,
+                    Version::from_parts(major, minor, 0, None),
+                ));
+                cmp.1 = Some(Comparator::from_parts(
                     Operator::Lt,
-                    major,
-                    minor + 1,
-                ))
+                    Version::from_parts(major, minor + 1, 0, None),
+                ));
             } else {
-                let major: usize = major.parse()?;
-                Ok(format!(
-                    "{}{}.{}.0 {}{}.0.0",
+                cmp.0 = Some(Comparator::from_parts(
                     Operator::Gte,
-                    major,
-                    minor,
+                    Version::from_parts(major, minor, 0, None),
+                ));
+                cmp.1 = Some(Comparator::from_parts(
                     Operator::Lt,
-                    major + 1,
-                ))
+                    Version::from_parts(major + 1, 0, 0, None),
+                ));
             }
-        } else if prerelease != "" {
+        } else if prerelease.len() > 0 {
             //this unwrap will never panic since we already verified that we have at least
             //one char in the string
-            prerelease = if prerelease.chars().next().unwrap() == '-' {
-                prerelease
+            let prerelease = if prerelease.chars().next().unwrap() == '-' {
+                prerelease.to_string()
             } else {
                 format!("-{}", prerelease)
             };
 
-            if major == "0" {
-                if minor == "0" {
-                    let patch: usize = patch.parse()?;
-                    Ok(format!(
-                        "{}{}.{}.{}{} {}{}.{}.{}",
+            let major = major.parse()?;
+            let minor = minor.parse()?;
+            let patch = patch.parse()?;
+
+            if major == 0 {
+                if minor == 0 {
+                    cmp.0 = Some(Comparator::from_parts(
                         Operator::Gte,
-                        major,
-                        minor,
-                        patch,
-                        prerelease,
+                        Version::from_parts(major, minor, patch, Some(prerelease)),
+                    ));
+                    cmp.1 = Some(Comparator::from_parts(
                         Operator::Lt,
-                        major,
-                        minor,
-                        patch + 1
-                    ))
+                        Version::from_parts(major, minor, patch + 1, None),
+                    ));
                 } else {
-                    let minor: usize = minor.parse()?;
-                    Ok(format!(
-                        "{}{}.{}.{}{} {}{}.{}.0",
+                    cmp.0 = Some(Comparator::from_parts(
                         Operator::Gte,
-                        major,
-                        minor,
-                        patch,
-                        prerelease,
+                        Version::from_parts(major, minor, patch, Some(prerelease)),
+                    ));
+                    cmp.1 = Some(Comparator::from_parts(
                         Operator::Lt,
-                        major,
-                        minor + 1,
-                    ))
+                        Version::from_parts(major, minor + 1, 0, None),
+                    ));
                 }
             } else {
-                let major: usize = major.parse()?;
-                Ok(format!(
-                    "{}{}.{}.{}{} {}{}.0.0",
+                cmp.0 = Some(Comparator::from_parts(
                     Operator::Gte,
-                    major,
-                    minor,
-                    patch,
-                    prerelease,
+                    Version::from_parts(major, minor, patch, Some(prerelease)),
+                ));
+                cmp.1 = Some(Comparator::from_parts(
                     Operator::Lt,
-                    major + 1,
-                ))
+                    Version::from_parts(major + 1, 0, 0, None),
+                ));
             }
         } else {
-            if major == "0" {
-                if minor == "0" {
-                    let patch: usize = patch.parse()?;
-                    Ok(format!(
-                        "{}{}.{}.{} {}{}.{}.{}",
+            let major = major.parse()?;
+            let minor = minor.parse()?;
+            let patch = patch.parse()?;
+
+            if major == 0 {
+                if minor == 0 {
+                    cmp.0 = Some(Comparator::from_parts(
                         Operator::Gte,
-                        major,
-                        minor,
-                        patch,
+                        Version::from_parts(major, minor, patch, None),
+                    ));
+                    cmp.1 = Some(Comparator::from_parts(
                         Operator::Lt,
-                        major,
-                        minor,
-                        patch + 1
-                    ))
+                        Version::from_parts(major, minor, patch + 1, None),
+                    ));
                 } else {
-                    let minor: usize = minor.parse()?;
-                    Ok(format!(
-                        "{}{}.{}.{} {}{}.{}.0",
+                    cmp.0 = Some(Comparator::from_parts(
                         Operator::Gte,
-                        major,
-                        minor,
-                        patch,
+                        Version::from_parts(major, minor, patch, None),
+                    ));
+                    cmp.1 = Some(Comparator::from_parts(
                         Operator::Lt,
-                        major,
-                        minor + 1,
-                    ))
+                        Version::from_parts(major, minor + 1, 0, None),
+                    ));
                 }
             } else {
-                let major: usize = major.parse()?;
-                Ok(format!(
-                    "{}{}.{}.{} {}{}.0.0",
+                cmp.0 = Some(Comparator::from_parts(
                     Operator::Gte,
-                    major,
-                    minor,
-                    patch,
+                    Version::from_parts(major, minor, patch, None),
+                ));
+                cmp.1 = Some(Comparator::from_parts(
                     Operator::Lt,
-                    major + 1,
-                ))
+                    Version::from_parts(major + 1, 0, 0, None),
+                ));
             }
         }
+
+        Ok(Some(cmp))
     }
 
     /// Tests whether a `version` is in this `range`.
@@ -373,7 +400,10 @@ impl<'p> Range {
                         }
 
                         if v.has_prerelease() {
-                            if v.major == v.major && v.minor == v.minor && v.patch == v.patch {
+                            if version.major == v.major
+                                && version.minor == v.minor
+                                && version.patch == v.patch
+                            {
                                 return true;
                             }
                         }
@@ -397,8 +427,9 @@ mod tests {
         let v = vec![("1.2.3 - 1.2.4", ">=1.2.3 <=1.2.4")];
         for v in v {
             let res = Range::replace_hyphens(v.0, false).unwrap();
-            assert!(!res.contains("-"), "contains hyphen");
-            assert_eq!(res, String::from(v.1));
+            let comp = format!("{}", &res.unwrap());
+            assert!(!comp.contains("-"), "contains hyphen");
+            assert_eq!(comp, String::from(v.1));
         }
     }
 
@@ -442,8 +473,8 @@ mod tests {
     fn replce_carets() {
         let v = vec![("^1.2.3", ">=1.2.3 <2.0.0")];
         for v in v {
-            let res = Range::replace_carets(v.0).unwrap();
-            assert_eq!(res, String::from(v.1));
+            let res = Range::replace_carets(v.0).unwrap().unwrap();
+            assert_eq!(res.to_string(), String::from(v.1));
         }
     }
 }
