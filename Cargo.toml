@@ -6,6 +6,7 @@ edition = "2018"
 description = "Semantic version parsing and comparison based on NPM's node-semver package."
 readme = "README.md"
 license-file = "LICENSE"
+repository = "https://github.com/gngeorgiev/semver_rs"
 
 [dependencies]
 lazy_static = "1.1"
