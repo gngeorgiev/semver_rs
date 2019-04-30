@@ -58,7 +58,7 @@ dependencies = [
 
 [[package]]
 name = "semver_rs"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "lazy_static 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
