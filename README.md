@@ -1,6 +1,6 @@
 # SemVer
 
-[![Build Status](https://travis-ci.org/gngeorgiev/semver_rs.svg?branch=master)](https://travis-ci.org/gngeorgiev/semver_rs) [![semver_rs](https://docs.rs/semver_rs/badge.svg)](https://docs.rs/semver_rs)
+[![semver_rs](https://docs.rs/semver_rs/badge.svg)](https://docs.rs/semver_rs) [![semver_rs](https://img.shields.io/crates/v/semver_rs.svg)](https://crates.io/crates/semver_rs) [![Build Status](https://travis-ci.org/gngeorgiev/semver_rs.svg?branch=master)](https://travis-ci.org/gngeorgiev/semver_rs)
 
 Semantic version parsing and comparison ([semver](https://semver.org/)). The implementation of this crate is based on the
 [node-semver](https://github.com/npm/node-semver#readme) npm package. The tests are taken directly
