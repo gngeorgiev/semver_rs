@@ -178,10 +178,63 @@ impl PartialEq for Version {
 
 impl PartialOrd for Version {
     fn partial_cmp(&self, other: &Version) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Eq for Version {}
+
+impl Ord for Version {
+    fn cmp(&self, other: &Version) -> Ordering {
         let res = self.compare_main(other);
-        Some(match res {
+        match res {
             Ordering::Equal => self.compare_pre(other),
             _ => res,
-        })
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn vec_compare<U, V>(va: &[U], vb: &[V]) -> bool
+    where
+        U: AsRef<str>,
+        V: AsRef<str>,
+    {
+        (va.len() == vb.len()) && va.iter().zip(vb).all(|(a, b)| a.as_ref() == b.as_ref())
+    }
+    #[test]
+    fn test_sort() {
+        // Create a vector of semver_rs::Version
+        let mut input_versions_list = vec![
+            "1.2.3-dev",
+            "1.2.3-dev.1",
+            "1.2.3-dev.cache",
+            "1.2.3",
+            "2.0.0",
+            "1.1.1",
+        ]
+        .iter()
+        .flat_map(|version| Version::new(version).parse())
+        .collect::<Vec<Version>>();
+        // Sort it inplace
+        input_versions_list.sort();
+        // Create the expected Vec<&str>
+        let output: Vec<String> = input_versions_list
+            .iter()
+            .map(|x| x.to_string())
+            .collect::<Vec<String>>();
+
+        let expected = vec![
+            "1.1.1",
+            "1.2.3-dev",
+            "1.2.3-dev.1",
+            "1.2.3-dev.cache",
+            "1.2.3",
+            "2.0.0",
+        ];
+        assert!(vec_compare(&output, &expected));
     }
 }
