@@ -14,7 +14,7 @@
     "@angular/forms": "^7.2.14",
     "@angular/http": "^7.2.14",
     "@angular/platform-browser": "^7.2.14",
-    "angular": "^1.7.8",
+    "angular": "^1.8.0",
     "chalk": "^2.4.2",
     "express": "^4.16.4",
     "glob": "^7.1.3",
