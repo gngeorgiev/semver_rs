@@ -1,6 +1,10 @@
 use std::fmt;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 #[derive(PartialEq, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Operator {
     Gt,
     Lt,
