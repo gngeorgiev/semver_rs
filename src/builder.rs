@@ -2,6 +2,9 @@ use crate::error::Error;
 
 use std::marker::PhantomData;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// Allows building an [Options](crate::Options) instance.
 /// ## Example
 /// ```
@@ -44,6 +47,7 @@ impl OptionsBuilder {
 /// # Ok::<(), Error>(())
 /// ```
 #[derive(Default, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Options {
     /// Be more forgiving about not-quite-valid semver strings.
     /// Any resulting output will always be 100% strict compliant.

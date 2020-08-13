@@ -5,10 +5,14 @@ use crate::util::compare_identifiers;
 
 use std::{cmp::Ordering, fmt, str};
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// A `version` is described by the `v2.0.0` specification found at [semver](https://semver.org/).
 ///
 /// A leading `=` or `v` character is stripped off and ignored.
 #[derive(Default, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Version {
     pub major: i32,
     pub minor: i32,
