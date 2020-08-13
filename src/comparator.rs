@@ -12,6 +12,9 @@ use crate::version::Version;
 use std::cmp::Ordering;
 use std::fmt;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// ComparatorPair is a simple struct that can hold two comparators
 /// it knows how to format its Comparators
 #[derive(Debug)]
@@ -32,6 +35,7 @@ impl fmt::Display for ComparatorPair {
 /// A `Comparator` is composed of an [Operator](crate::operator::Operator) and a [Version](create::version::Version).
 /// Comparators are the building blocks of [Range](crate::range::Range)s
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Comparator {
     pub operator: Operator,
     pub version: Version,
