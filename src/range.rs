@@ -10,6 +10,9 @@ use crate::util::{is_any_version, match_at_index_str};
 use crate::version::Version;
 use std::borrow::Cow;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// A `version range` is a set of `comparators` which specify versions that satisfy the `range`.
 /// A comparator is composed of an operator and a version. The set of primitive operators is:
 ///
@@ -34,6 +37,7 @@ use std::borrow::Cow;
 ///
 /// The range `1.2.7 || >=1.2.9 <2.0.0` would match the versions `1.2.7`, `1.2.9`, and `1.4.6`, but not the versions `1.2.8` or `2.0.0`.
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Range {
     pub(crate) comparators: Vec<Vec<Comparator>>,
 

@@ -2,17 +2,22 @@ use crate::builder::{Builder, Options, Parseable};
 use crate::error::Error;
 use crate::expressions::{VERSION, VERSION_LOOSE};
 use crate::util::compare_identifiers;
+use std::hash::Hash;
 
 use std::{cmp::Ordering, fmt, str};
+
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 /// A `version` is described by the `v2.0.0` specification found at [semver](https://semver.org/).
 ///
 /// A leading `=` or `v` character is stripped off and ignored.
-#[derive(Default, Clone, Debug)]
+#[derive(Default, Clone, Debug, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Version {
-    pub major: i32,
-    pub minor: i32,
-    pub patch: i32,
+    pub major: i64,
+    pub minor: i64,
+    pub patch: i64,
     pub prerelease: Option<Vec<String>>,
 
     any: bool,
@@ -78,7 +83,7 @@ impl<'p> Version {
     }
 
     /// Constructs a version from its already parsed parts, e.g. `Version::from_parts(1, 2, 3, None)`.
-    pub fn from_parts(major: i32, minor: i32, patch: i32, prerelease: Option<String>) -> Self {
+    pub fn from_parts(major: i64, minor: i64, patch: i64, prerelease: Option<String>) -> Self {
         let prerelease = match prerelease {
             Some(pre) => {
                 let split: Vec<&str> = pre.split(".").collect();
