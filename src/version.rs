@@ -2,6 +2,7 @@ use crate::builder::{Builder, Options, Parseable};
 use crate::error::Error;
 use crate::expressions::{VERSION, VERSION_LOOSE};
 use crate::util::compare_identifiers;
+use std::hash::Hash;
 
 use std::{cmp::Ordering, fmt, str};
 
@@ -11,7 +12,7 @@ use serde::{Deserialize, Serialize};
 /// A `version` is described by the `v2.0.0` specification found at [semver](https://semver.org/).
 ///
 /// A leading `=` or `v` character is stripped off and ignored.
-#[derive(Default, Clone, Debug)]
+#[derive(Default, Clone, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Version {
     pub major: i64,
