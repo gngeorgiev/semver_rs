@@ -21,7 +21,7 @@
     "http-server": "^0.11.1",
     "inquirer": "^6.3.1",
     "mongodb": "^3.2.3",
-    "parse-server": "^3.2.3",
+    "parse-server": "^4.5.2",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
     "react-native": "^0.59.5",
