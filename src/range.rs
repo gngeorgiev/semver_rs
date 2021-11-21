@@ -98,10 +98,10 @@ impl<'p> Parseable<'p> for Range {
                 // TODO: this split should yield an array with one empty string inside
                 // when used on an empty string, just like in the original npm package.
                 // The condition above is a workaround atm
-                
 
                 let opts = comparators_opts.clone();
-                let comparators = SPLIT_SPACES.split(&comparators_parsed)
+                let comparators = SPLIT_SPACES
+                    .split(&comparators_parsed)
                     .filter(|c| {
                         if loose {
                             COMPARATOR_LOOSE.is_match(c)
@@ -125,8 +125,8 @@ impl<'p> Parseable<'p> for Range {
             })
             .collect();
 
-        let comparators: Vec<Vec<Comparator>> =
-            comparators_result?.into_iter().flatten().collect();
+        // TODO: can we avoid allocating so much here?
+        let comparators: Vec<Vec<Comparator>> = comparators_result?.into_iter().flatten().collect();
 
         if comparators.is_empty() {
             Err(Error::new(ErrorKind::InvalidRange(range_input.to_owned())))
@@ -271,20 +271,16 @@ impl<'p> Range {
         } else if is_any_version(patch) {
             let major = major.parse()?;
             let minor = minor.parse()?;
+            cmp.0 = Some(Comparator::from_parts(
+                Operator::Gte,
+                Version::from_parts(major, minor, 0, None),
+            ));
             if major == 0 {
-                cmp.0 = Some(Comparator::from_parts(
-                    Operator::Gte,
-                    Version::from_parts(major, minor, 0, None),
-                ));
                 cmp.1 = Some(Comparator::from_parts(
                     Operator::Lt,
                     Version::from_parts(major, minor + 1, 0, None),
                 ));
             } else {
-                cmp.0 = Some(Comparator::from_parts(
-                    Operator::Gte,
-                    Version::from_parts(major, minor, 0, None),
-                ));
                 cmp.1 = Some(Comparator::from_parts(
                     Operator::Lt,
                     Version::from_parts(major + 1, 0, 0, None),
@@ -303,31 +299,23 @@ impl<'p> Range {
             let minor = minor.parse()?;
             let patch = patch.parse()?;
 
+            cmp.0 = Some(Comparator::from_parts(
+                Operator::Gte,
+                Version::from_parts(major, minor, patch, Some(prerelease)),
+            ));
             if major == 0 {
                 if minor == 0 {
-                    cmp.0 = Some(Comparator::from_parts(
-                        Operator::Gte,
-                        Version::from_parts(major, minor, patch, Some(prerelease)),
-                    ));
                     cmp.1 = Some(Comparator::from_parts(
                         Operator::Lt,
                         Version::from_parts(major, minor, patch + 1, None),
                     ));
                 } else {
-                    cmp.0 = Some(Comparator::from_parts(
-                        Operator::Gte,
-                        Version::from_parts(major, minor, patch, Some(prerelease)),
-                    ));
                     cmp.1 = Some(Comparator::from_parts(
                         Operator::Lt,
                         Version::from_parts(major, minor + 1, 0, None),
                     ));
                 }
             } else {
-                cmp.0 = Some(Comparator::from_parts(
-                    Operator::Gte,
-                    Version::from_parts(major, minor, patch, Some(prerelease)),
-                ));
                 cmp.1 = Some(Comparator::from_parts(
                     Operator::Lt,
                     Version::from_parts(major + 1, 0, 0, None),
@@ -338,31 +326,23 @@ impl<'p> Range {
             let minor = minor.parse()?;
             let patch = patch.parse()?;
 
+            cmp.0 = Some(Comparator::from_parts(
+                Operator::Gte,
+                Version::from_parts(major, minor, patch, None),
+            ));
             if major == 0 {
                 if minor == 0 {
-                    cmp.0 = Some(Comparator::from_parts(
-                        Operator::Gte,
-                        Version::from_parts(major, minor, patch, None),
-                    ));
                     cmp.1 = Some(Comparator::from_parts(
                         Operator::Lt,
                         Version::from_parts(major, minor, patch + 1, None),
                     ));
                 } else {
-                    cmp.0 = Some(Comparator::from_parts(
-                        Operator::Gte,
-                        Version::from_parts(major, minor, patch, None),
-                    ));
                     cmp.1 = Some(Comparator::from_parts(
                         Operator::Lt,
                         Version::from_parts(major, minor + 1, 0, None),
                     ));
                 }
             } else {
-                cmp.0 = Some(Comparator::from_parts(
-                    Operator::Gte,
-                    Version::from_parts(major, minor, patch, None),
-                ));
                 cmp.1 = Some(Comparator::from_parts(
                     Operator::Lt,
                     Version::from_parts(major + 1, 0, 0, None),
@@ -380,40 +360,39 @@ impl<'p> Range {
             None => false,
         };
 
-        self.comparators
-            .iter()
-            .find(move |comparators| {
+        self.comparators.iter().any(move |comparators| {
+            for c in comparators.iter() {
+                if !c.test(version) {
+                    return false;
+                }
+            }
+
+            if version.has_prerelease() && !include_prerelease {
+                // Find the set of versions that are allowed to have prereleases
+                // For example, ^1.2.3-pr.1 desugars to >=1.2.3-pr.1 <2.0.0
+                // That should allow `1.2.3-pr.2` to pass.
+                // However, `1.2.4-alpha.notready` should NOT be allowed,
+                // even though it's within the range set by the comparators.
                 for c in comparators.iter() {
-                    if !c.test(version) {
-                        return false;
+                    let v = &c.version;
+                    if v.is_any() {
+                        continue;
+                    }
+
+                    if v.has_prerelease()
+                        && version.major == v.major
+                        && version.minor == v.minor
+                        && version.patch == v.patch
+                    {
+                        return true;
                     }
                 }
 
-                if version.has_prerelease() && !include_prerelease {
-                    // Find the set of versions that are allowed to have prereleases
-                    // For example, ^1.2.3-pr.1 desugars to >=1.2.3-pr.1 <2.0.0
-                    // That should allow `1.2.3-pr.2` to pass.
-                    // However, `1.2.4-alpha.notready` should NOT be allowed,
-                    // even though it's within the range set by the comparators.
-                    for c in comparators.iter() {
-                        let v = &c.version;
-                        if v.is_any() {
-                            continue;
-                        }
-
-                        if v.has_prerelease() && version.major == v.major
-                                && version.minor == v.minor
-                                && version.patch == v.patch {
-                            return true;
-                        }
-                    }
-
-                    false
-                } else {
-                    true
-                }
-            })
-            .is_some()
+                false
+            } else {
+                true
+            }
+        })
     }
 }
 

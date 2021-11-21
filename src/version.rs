@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 /// A `version` is described by the `v2.0.0` specification found at [semver](https://semver.org/).
 ///
 /// A leading `=` or `v` character is stripped off and ignored.
-#[derive(Default, Clone, Debug, Hash)]
+#[derive(Default, Clone, Debug, Hash, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Version {
     pub major: i64,
@@ -130,29 +130,23 @@ impl<'p> Version {
     }
 
     fn compare_pre(&self, other: &Self) -> Ordering {
-        if self.prerelease.is_some() && other.prerelease.is_none() {
-            Ordering::Less
-        } else if self.prerelease.is_none() && other.prerelease.is_some() {
-            Ordering::Greater
-        } else if self.prerelease.is_none() && other.prerelease.is_none() {
-            Ordering::Equal
-        } else {
-            let mut self_prerelease = self.prerelease.clone().unwrap().into_iter();
-            let mut other_prerelease = other.prerelease.clone().unwrap().into_iter();
-            loop {
-                let a = self_prerelease.next();
-                let b = other_prerelease.next();
-
-                if a.is_none() && b.is_none() {
-                    return Ordering::Equal;
-                } else if b.is_none() {
-                    return Ordering::Greater;
-                } else if a.is_none() {
-                    return Ordering::Less;
-                } else if a.clone().unwrap().eq(&b.clone().unwrap()) {
-                    continue;
-                } else {
-                    return compare_identifiers(a.unwrap(), b.unwrap());
+        match (self.prerelease.as_ref(), other.prerelease.as_ref()) {
+            (Some(_), None) => Ordering::Less,
+            (None, Some(_)) => Ordering::Greater,
+            (None, None) => Ordering::Equal,
+            (Some(pre1), Some(pre2)) => {
+                let mut pre1 = pre1.iter();
+                let mut pre2 = pre2.iter();
+                loop {
+                    match (pre1.next().as_ref(), pre2.next().as_ref()) {
+                        (Some(a), Some(b)) => match a.eq(b) {
+                            true => continue,
+                            false => return compare_identifiers(a, b),
+                        },
+                        (None, None) => return Ordering::Equal,
+                        (None, Some(_)) => return Ordering::Less,
+                        (Some(_), None) => return Ordering::Greater,
+                    }
                 }
             }
         }
@@ -174,19 +168,11 @@ impl fmt::Display for Version {
     }
 }
 
-impl PartialEq for Version {
-    fn eq(&self, other: &Version) -> bool {
-        self.partial_cmp(other).unwrap() == Ordering::Equal
-    }
-}
-
 impl PartialOrd for Version {
     fn partial_cmp(&self, other: &Version) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
-
-impl Eq for Version {}
 
 impl Ord for Version {
     fn cmp(&self, other: &Version) -> Ordering {

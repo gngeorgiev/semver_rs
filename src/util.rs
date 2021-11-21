@@ -40,20 +40,14 @@ pub(crate) fn replacer<'a>(
     }
 }
 
-pub(crate) fn compare_identifiers<S: Into<String>>(a: S, b: S) -> Ordering {
-    let a = a.into();
-    let b = b.into();
+pub(crate) fn compare_identifiers<S: AsRef<str>>(a: S, b: S) -> Ordering {
+    let a = a.as_ref();
+    let b = b.as_ref();
 
-    let a_num = a.parse::<i32>();
-    let b_num = b.parse::<i32>();
-
-    if a_num.is_ok() && b_num.is_err() {
-        Ordering::Less
-    } else if b_num.is_ok() && a_num.is_err() {
-        Ordering::Greater
-    } else if a_num.is_err() && b_num.is_err() {
-        a.cmp(&b)
-    } else {
-        a_num.unwrap().cmp(&b_num.unwrap())
+    match (a.parse::<i32>(), b.parse::<i32>()) {
+        (Ok(_), Err(_)) => Ordering::Less,
+        (Err(_), Ok(_)) => Ordering::Greater,
+        (Err(_), Err(_)) => a.cmp(b),
+        (Ok(a), Ok(b)) => a.cmp(&b),
     }
 }
