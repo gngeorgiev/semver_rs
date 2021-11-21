@@ -1,0 +1,19 @@
+on: [push, pull_request, release]
+
+name: CI
+
+jobs:
+  build_and_test:
+    name: Rust project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: rustup component add clippy rustfmt
+      - run: cargo install just
+      - run: cargo clippy -- -D warnings
+      - run: cargo fmt -- --check
+      - run: just test
+      
