@@ -13,7 +13,5 @@ jobs:
           toolchain: stable
       - run: rustup component add clippy rustfmt
       - run: cargo install just
-      - run: cargo clippy -- -D warnings
-      - run: cargo fmt -- --check
-      - run: just test
+      - run: just ci
       

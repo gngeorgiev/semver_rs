@@ -13,6 +13,12 @@ watch-test:
 test:
     cargo test --all-features
 
+check-all:
+    cargo clippy -- -D warnings
+    cargo fmt -- --check
+
+ci: test check-all
+
 bench:
     #!/usr/bin/env bash
     pushd bench
