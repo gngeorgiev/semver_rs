@@ -58,6 +58,10 @@ pub struct Options {
     pub include_prerelease: bool,
 }
 
+pub trait IntoOptionsMaybe: Into<Option<Options>> + Clone + Copy + Default {}
+
+impl<T> IntoOptionsMaybe for T where T: Into<Option<Options>> + Clone + Copy + Default {}
+
 impl Options {
     /// Returns a builder that allows building a [Options](crate::Options) instance.    
     pub fn builder() -> OptionsBuilder {
@@ -94,13 +98,8 @@ where
         }
     }
 
-    pub fn with_options_maybe(mut self, opts: Option<Options>) -> Self {
-        self.opts = opts;
-        self
-    }
-
-    pub fn with_options(mut self, opts: Options) -> Self {
-        self.opts = Some(opts);
+    pub fn with_options<O: Into<Option<Options>>>(mut self, opts: O) -> Self {
+        self.opts = opts.into();
         self
     }
 
