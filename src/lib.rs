@@ -48,12 +48,23 @@
 //! use semver_rs::{Version, Range, Options};
 //!
 //! let opts = Options::builder().loose(true).include_prerelease(true).build();
-//! let range = Range::new(">=1.2.3").with_options(opts.clone()).parse()?;
-//! let ver = Version::new("1.2.4-pre1").with_options(opts.clone()).parse()?;
+//! let range = Range::new(">=1.2.3").with_options(opts).parse()?;
+//! let ver = Version::new("1.2.4-pre1").with_options(opts).parse()?;
 //!
 //! assert!(range.test(&ver));
 //!
 //! # Ok::<(), semver_rs::Error>(())
+//! ```
+//!
+//! #### Serialisation with Serde
+//! ```
+//! use semver_rs::{Range, Options};
+//!
+//! let opts = Options::builder().loose(true).include_prerelease(true).build();
+//! let range = Range::new(">=1.2.3").with_options(opts).parse()?;
+//! let _ = serde_json::to_string(&opts)?;
+//!
+//! # Ok::<(), Box<dyn std::error::Error + 'static>>(())
 //! ```
 
 mod builder;

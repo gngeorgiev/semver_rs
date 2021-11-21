@@ -22,12 +22,3 @@ serde_json = "1.0"
 
 [features]
 default = []
-
-[[test]]
-path = "tests/compare.rs"
-name = "compare"
-
-[[test]]
-path = "tests/serde.rs"
-name = "serde"
-required-features = ["serde"]

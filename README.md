@@ -64,6 +64,22 @@ let ver = Version::new("1.2.4-pre1").with_options(opts).parse()?;
 assert!(range.test(&ver));
 ```
 
+### Serializing
+
+In order to allow serializing the semver structs allow the `serde` feature:
+
+```toml
+semver_rs = { version = "0.1", features = ["serde"] }
+```
+
+```rust
+use semver_rs::{Range, Options};
+
+let opts = Options::builder().loose(true).include_prerelease(true).build();
+let range = Range::new(">=1.2.3").with_options(opts).parse().unwrap();
+let _ = serde_json::to_string(&opts).unwrap();
+```
+
 ## Comparisons and considerations with other crates
 
 At the time of writing this README there's only one other crate in the Rust ecosystem capable of parsing semver - [steveklabnik/semver](https://github.com/steveklabnik/semver).
