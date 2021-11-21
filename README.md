@@ -7,17 +7,18 @@ Semantic version parsing and comparison ([semver](https://semver.org/)). The imp
 from node-semver's repo. This should make this crate as good at parsing semver expressions as the
 node package manager.
 
-# Installation
+## Installation
 
 Add this to your `[dependencies]` section in `Cargo.toml`:
 
-```
+```toml
 semver_rs = "0.1"
 ```
 
-# Usage
+## Usage
 
-#### Comparing two versions:
+### Comparing two versions
+
 ```rust
 use semver_rs::Version;
 
@@ -34,7 +35,8 @@ use std::cmp::Ordering;
 assert!(compare("2.0.0", "1.2.3", None)? == Ordering::Greater);
 ```
 
-#### Checking whether a version is in a range
+### Checking whether a version is in a range
+
 ```rust
 use semver_rs::{Range, Version};
 
@@ -50,7 +52,8 @@ use semver_rs::satisfies;
 assert!(satisfies("1.2.4", ">=1.2.4", None)?);
 ```
 
-#### Parsing with specific options
+### Parsing with specific options
+
 ```rust
 use semver_rs::{Version, Range, Options};
 
@@ -61,7 +64,7 @@ let ver = Version::new("1.2.4-pre1").with_options(opts.clone()).parse()?;
 assert!(range.test(&ver));
 ```
 
-# Comparisons and considerations with other crates
+## Comparisons and considerations with other crates
 
 At the time of writing this README there's only one other crate in the Rust ecosystem capable of parsing semver - [steveklabnik/semver](https://github.com/steveklabnik/semver).
 While this crate is being used in cargo and is clearly doing its job there very well, while comparing arbitrary semver
@@ -74,20 +77,20 @@ There are still a lot of string allocations that can be eliminated, especially i
 
 In the `bench` directory I have compiled series of tests. They can all be ran with `$ cd bench && bash gen.sh`.
 This shell script basically collects some ranges from random npm packages and compares the results for the three implementations -
-`semver_node`, `semver_rs` and `steveklabnik/semver`. From the table bellow the results can be observed. 
+`semver_node`, `semver_rs` and `steveklabnik/semver`. From the table bellow the results can be observed.
 
-| name | satisfies | not_satisfies | errors | average us |
-| ---- | --------- | ------------- | ------ | ---------- |
-| semver_node| 14 | 455 | 1 | 29 |
-| **semver_rs** | 14 | 455 | 1 | 14 |
-| steveklabnik/semver | 11 | 449 | 10 | 0.6 |
+| name                | satisfies | not_satisfies | errors | average us |
+| ------------------- | --------- | ------------- | ------ | ---------- |
+| semver_node         | 14        | 455           | 1      | 29         |
+| **semver_rs**       | 14        | 455           | 1      | 14         |
+| steveklabnik/semver | 11        | 449           | 10     | 0.6        |
 
 Basically `semver_rs` is faster than `semver_node` and slower than `steveklabnik/semver`. It's also as accurate
 in parsing as `semver_node`, while `steveklabnik/semver` couldn't handle 9 of the ranges.
 
-# Goals and the future
+## Goals and the future
 
 This initial release aims at bringing this package out in the public and also as a baseline in terms of performance.
-From now on performance can be improved upon by keeping compatibility at the absolute maximum. 
+From now on performance can be improved upon by keeping compatibility at the absolute maximum.
 In general the parsing algorithm itself is not optimal at a lot of places. There's also a lot of needless string and vector
 allocations at the moment which are leftovers from the prototyping phase of the package, that can be addressed gradually.
