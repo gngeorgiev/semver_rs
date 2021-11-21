@@ -85,10 +85,11 @@ impl<'p> Version {
     /// Constructs a version from its already parsed parts, e.g. `Version::from_parts(1, 2, 3, None)`.
     pub fn from_parts(major: i64, minor: i64, patch: i64, prerelease: Option<String>) -> Self {
         let prerelease = match prerelease {
-            Some(pre) => {
-                let prereleases = pre.split('.').map(|s| s.to_owned()).collect();
-                Some(prereleases)
-            }
+            Some(pre) => pre
+                .split('.')
+                .map(|s| s.to_owned())
+                .collect::<Vec<String>>()
+                .into(),
             None => None,
         };
 
@@ -155,16 +156,23 @@ impl<'p> Version {
 
 impl fmt::Display for Version {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.is_empty() {
-            Ok(())
-        } else {
-            let mut fmt = format!("{}.{}.{}", self.major, self.minor, self.patch);
-            if let Some(ref prerelease) = self.prerelease {
-                fmt = format!("{}-{}", fmt, prerelease.join("."))
-            }
+        if !self.is_empty() {
+            let fmt = if let Some(ref prerelease) = self.prerelease {
+                format!(
+                    "{}.{}.{}-{}",
+                    self.major,
+                    self.minor,
+                    self.patch,
+                    prerelease.join(".")
+                )
+            } else {
+                format!("{}.{}.{}", self.major, self.minor, self.patch)
+            };
 
-            write!(f, "{}", fmt)
+            write!(f, "{}", fmt)?;
         }
+
+        Ok(())
     }
 }
 
