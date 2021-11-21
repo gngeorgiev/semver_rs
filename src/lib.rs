@@ -79,7 +79,7 @@ mod version;
 
 pub use builder::{Builder, Options, OptionsBuilder, Parseable};
 pub use compare_fns::*;
-pub use error::{Error, ErrorKind};
+pub use error::Error;
 pub use operator::Operator;
 pub use range::Range;
 pub use version::Version;

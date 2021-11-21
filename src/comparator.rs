@@ -1,5 +1,5 @@
 use crate::builder::Options;
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 use crate::expressions::{
     COMPARATOR, COMPARATOR_LOOSE, COMP_REPLACE_CARETS, COMP_REPLACE_CARETS_LOOSE,
     COMP_REPLACE_STARS, COMP_REPLACE_TILDES, COMP_REPLACE_TILDES_LOOSE, COMP_REPLACE_XRANGES,
@@ -67,7 +67,7 @@ impl Comparator {
         };
         let cap = match cap {
             Some(cap) => cap,
-            None => return Err(Error::new(ErrorKind::InvalidComparator(comp.clone()))),
+            None => return Err(Error::InvalidComparator(comp)),
         };
 
         let operator = match cap.get(1) {

@@ -16,6 +16,7 @@ lazy_static = "1.4.0"
 regex = "1.5.4"
 unicase = "2.6.0"
 serde = { version = "1.0.130", features = ["derive"], optional = true }
+thiserror = "1.0.30"
 
 [dev_dependencies]
 serde_json = "1.0"

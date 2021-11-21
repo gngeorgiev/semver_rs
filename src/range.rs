@@ -1,6 +1,6 @@
 use crate::builder::{Builder, Options, Parseable};
 use crate::comparator::{Comparator, ComparatorPair};
-use crate::error::{Error, ErrorKind};
+use crate::error::Error;
 use crate::expressions::{
     COMPARATOR_LOOSE, COMP_REPLACE_CARETS, RANGE_HYPHEN, RANGE_HYPHEN_LOOSE, RANGE_OR,
     RANGE_TRIM_CARET, RANGE_TRIM_OPERATORS, RANGE_TRIM_TILDE, SPLIT_SPACES,
@@ -129,7 +129,7 @@ impl<'p> Parseable<'p> for Range {
         let comparators: Vec<Vec<Comparator>> = comparators_result?.into_iter().flatten().collect();
 
         if comparators.is_empty() {
-            Err(Error::new(ErrorKind::InvalidRange(range_input.to_owned())))
+            Err(Error::InvalidRange(range_input.into()))
         } else {
             Ok(Range { comparators, opts })
         }
