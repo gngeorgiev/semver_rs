@@ -21,7 +21,7 @@ pub fn clean(version: &str, opts: Option<Options>) -> Result<String, Error> {
 
 /// Compares the ordering of [Version](crate::Version) `a` vs [Version](crate::Version) `b`.
 pub fn compare(a: &str, b: &str, opts: Option<Options>) -> Result<Ordering, Error> {
-    let a = parse(a, opts.clone())?;
+    let a = parse(a, opts)?;
     let b = parse(b, opts)?;
     Ok(a.partial_cmp(&b).unwrap())
 }
@@ -50,7 +50,7 @@ pub fn cmp(a: &str, op: Operator, b: &str, opts: Option<Options>) -> Result<bool
 
 /// Checks whether [Version](crate::Version) is in a [Range](crate::range).
 pub fn satisfies(ver: &str, range: &str, opts: Option<Options>) -> Result<bool, Error> {
-    let range = Range::new(range).with_options_maybe(opts.clone()).parse()?;
+    let range = Range::new(range).with_options_maybe(opts).parse()?;
     let ver = Version::new(ver).with_options_maybe(opts).parse()?;
     Ok(range.test(&ver))
 }

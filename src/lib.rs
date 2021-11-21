@@ -143,10 +143,10 @@ mod tests {
         for (v1, v2, loose) in v {
             println!("testing compares: {} {} loose: {}", v1, v2, loose);
             let opts = Options::builder().loose(loose).build();
-            let res = super::compare(v1, v2, Some(opts.clone())).unwrap();
+            let res = super::compare(v1, v2, Some(opts)).unwrap();
             assert!(res == Ordering::Greater);
-            assert!(super::compare(v1, v1, Some(opts.clone())).unwrap() == Ordering::Equal);
-            assert!(super::compare(v2, v2, Some(opts.clone())).unwrap() == Ordering::Equal);
+            assert!(super::compare(v1, v1, Some(opts)).unwrap() == Ordering::Equal);
+            assert!(super::compare(v2, v2, Some(opts)).unwrap() == Ordering::Equal);
         }
     }
 
@@ -195,10 +195,10 @@ mod tests {
         for (v1, v2, loose) in v {
             println!("testing equality: {} {} loose: {}", v1, v2, loose);
             let opts = Options::builder().loose(loose).build();
-            let res = super::compare(v1, v2, Some(opts.clone())).unwrap();
+            let res = super::compare(v1, v2, Some(opts)).unwrap();
             assert!(res == Ordering::Equal);
-            assert!(super::cmp(v1, Operator::Gte, v2, Some(opts.clone())).unwrap());
-            assert!(super::cmp(v1, Operator::Lte, v2, Some(opts.clone())).unwrap());
+            assert!(super::cmp(v1, Operator::Gte, v2, Some(opts)).unwrap());
+            assert!(super::cmp(v1, Operator::Lte, v2, Some(opts)).unwrap());
         }
     }
 
@@ -312,7 +312,7 @@ mod tests {
         for (range, ver, loose) in v {
             println!("testing satisfies: {} {} loose: {}", range, ver, loose);
             let opts = Options::builder().loose(loose).build();
-            let res = super::satisfies(ver, range, Some(opts.clone())).unwrap();
+            let res = super::satisfies(ver, range, Some(opts)).unwrap();
             assert!(res);
         }
     }
@@ -401,7 +401,7 @@ mod tests {
                 range, ver, loose
             );
             let opts = Options::builder().loose(loose).build();
-            let res = super::satisfies(ver, range, Some(opts.clone())).unwrap_or(false);
+            let res = super::satisfies(ver, range, Some(opts)).unwrap_or(false);
             assert!(!res);
         }
     }

@@ -46,7 +46,7 @@ pub struct Range {
 
 impl<'p> Parseable<'p> for Range {
     fn parse(range_input: &'p str, opts: Option<Options>) -> Result<Self, Error> {
-        let loose = opts.clone().unwrap_or_default().loose;
+        let loose = opts.unwrap_or_default().loose;
 
         if range_input.is_empty() {
             let comp = Comparator::empty();
@@ -56,7 +56,7 @@ impl<'p> Parseable<'p> for Range {
             });
         }
 
-        let comparators_opts = opts.clone();
+        let comparators_opts = opts;
         let comparators_result: Result<Vec<Option<Vec<Comparator>>>, Error> = RANGE_OR
             .split(range_input)
             .map(move |range: &str| {
@@ -99,7 +99,7 @@ impl<'p> Parseable<'p> for Range {
                 // when used on an empty string, just like in the original npm package.
                 // The condition above is a workaround atm
 
-                let opts = comparators_opts.clone();
+                let opts = comparators_opts;
                 let comparators = SPLIT_SPACES
                     .split(&comparators_parsed)
                     .filter(|c| {
@@ -109,7 +109,7 @@ impl<'p> Parseable<'p> for Range {
                             true
                         }
                     })
-                    .map(move |r| Comparator::new(r.to_owned(), opts.clone()))
+                    .map(move |r| Comparator::new(r.to_owned(), opts))
                     .collect::<Result<Vec<_>, Error>>();
 
                 match comparators {
