@@ -93,10 +93,7 @@ cargo install just && just setup
 To run the benchmarks populating the next point run:
 
 ```shell
-pushd bench
-bash gen.sh
-cat combined.txt
-popd
+just bench
 ```
 
 This shell script collects some ranges from random npm packages and compares the results for the three implementations -

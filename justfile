@@ -12,3 +12,10 @@ watch-test:
 
 test:
     cargo test --all-features
+
+bench:
+    #!/usr/bin/env bash
+    pushd bench
+    bash gen.sh
+    cat combined.txt
+    popd
