@@ -58,8 +58,8 @@ assert!(satisfies("1.2.4", ">=1.2.4", None)?);
 use semver_rs::{Version, Range, Options};
 
 let opts = Options::builder().loose(true).include_prerelease(true).build();
-let range = Range::new(">=1.2.3").with_options(opts.clone()).parse()?;
-let ver = Version::new("1.2.4-pre1").with_options(opts.clone()).parse()?;
+let range = Range::new(">=1.2.3").with_options(opts).parse()?;
+let ver = Version::new("1.2.4-pre1").with_options(opts).parse()?;
 
 assert!(range.test(&ver));
 ```

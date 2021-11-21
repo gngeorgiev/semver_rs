@@ -46,7 +46,7 @@ impl OptionsBuilder {
 /// Version::new("1.2.3").with_options(opts).parse()?;
 /// # Ok::<(), Error>(())
 /// ```
-#[derive(Default, Clone, Debug)]
+#[derive(Default, Clone, Debug, Copy)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Options {
     /// Be more forgiving about not-quite-valid semver strings.
