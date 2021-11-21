@@ -1,6 +1,6 @@
 # SemVer
 
-![semver_rs](https://github.com/gngeorgiev/semver_rs/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/gngeorgiev/semver_rs/actions/workflows/ci.yaml/badge.svg)
 
 Semantic version parsing and comparison ([semver](https://semver.org/)). The implementation of this crate is based on the
 [node-semver](https://github.com/npm/node-semver#readme) npm package. The tests are taken directly
