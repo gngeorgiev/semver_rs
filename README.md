@@ -80,6 +80,14 @@ let range = Range::new(">=1.2.3").with_options(opts).parse().unwrap();
 let _ = serde_json::to_string(&opts).unwrap();
 ```
 
+## Development
+
+Install [just](https://github.com/casey/just) and run the setup:
+
+```shell
+cargo install just && just setup
+```
+
 ## Comparisons and considerations with other crates
 
 At the time of writing this README there's only one other crate in the Rust ecosystem capable of parsing semver - [steveklabnik/semver](https://github.com/steveklabnik/semver).
