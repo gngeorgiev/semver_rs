@@ -88,6 +88,20 @@ Install [just](https://github.com/casey/just) and run the setup:
 cargo install just && just setup
 ```
 
+## Run bench
+
+To run the benchmarks populating the next point run:
+
+```shell
+pushd bench
+bash gen.sh
+cat combined.txt
+popd
+```
+
+This shell script collects some ranges from random npm packages and compares the results for the three implementations -
+`semver_node`, `semver_rs` and `steveklabnik/semver`. From the table bellow the results can be observed.
+
 ## Comparisons and considerations with other crates
 
 At the time of writing this README there's only one other crate in the Rust ecosystem capable of parsing semver - [steveklabnik/semver](https://github.com/steveklabnik/semver).
@@ -99,17 +113,17 @@ I kept the implementation as close as possible so the code structure and the way
 One trade-off this implementation had to make was a tiny bit of performance. Since the parsing is based heavily on Regex it's a little bit slower.
 There are still a lot of string allocations that can be eliminated, especially in parsing Ranges and Versions with prereleases.
 
-In the `bench` directory I have compiled series of tests. They can all be ran with `$ cd bench && bash gen.sh`.
-This shell script basically collects some ranges from random npm packages and compares the results for the three implementations -
-`semver_node`, `semver_rs` and `steveklabnik/semver`. From the table bellow the results can be observed.
+```shell
+┌─────────┬───────────────────────┬───────────┬───────────────┬────────┬────────────────────┐
+│ (index) │         name          │ satisfies │ not_satisfies │ errors │     average_us     │
+├─────────┼───────────────────────┼───────────┼───────────────┼────────┼────────────────────┤
+│    0    │     'semver_node'     │    14     │      450      │   1    │ 36.763440860215056 │
+│    1    │      'semver_rs'      │    14     │      450      │   1    │  9.5247311827957   │
+│    2    │ 'steveklabnik/semver' │    11     │      444      │   10   │ 0.3311827956989247 │
+└─────────┴───────────────────────┴───────────┴───────────────┴────────┴────────────────────┘
+```
 
-| name                | satisfies | not_satisfies | errors | average us |
-| ------------------- | --------- | ------------- | ------ | ---------- |
-| semver_node         | 14        | 455           | 1      | 29         |
-| **semver_rs**       | 14        | 455           | 1      | 14         |
-| steveklabnik/semver | 11        | 449           | 10     | 0.6        |
-
-Basically `semver_rs` is faster than `semver_node` and slower than `steveklabnik/semver`. It's also as accurate
+In conclussion `semver_rs` is faster than `semver_node` and slower than `steveklabnik/semver`. It's also as accurate
 in parsing as `semver_node`, while `steveklabnik/semver` couldn't handle 9 of the ranges.
 
 ## Goals and the future
