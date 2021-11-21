@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use regex::Captures;
 
 pub(crate) fn is_any_version(v: &str) -> bool {
-    v == "" || v == "*" || unicase::eq(v, "x")
+    v.is_empty() || v == "*" || unicase::eq(v, "x")
 }
 
 pub(crate) fn match_at_index_str<'a>(v: &'a Captures, i: usize) -> &'a str {
@@ -20,7 +20,7 @@ pub(crate) fn increment_version(v: &str) -> String {
 }
 
 pub(crate) fn ensure_prerelease_dash(prerelease: &str) -> String {
-    if prerelease.chars().next().unwrap() != '-' {
+    if !prerelease.starts_with('-') {
         format!("-{}", prerelease)
     } else {
         String::from(prerelease)
@@ -47,11 +47,11 @@ pub(crate) fn compare_identifiers<S: Into<String>>(a: S, b: S) -> Ordering {
     let a_num = a.parse::<i32>();
     let b_num = b.parse::<i32>();
 
-    if a_num.is_ok() && !b_num.is_ok() {
+    if a_num.is_ok() && b_num.is_err() {
         Ordering::Less
-    } else if b_num.is_ok() && !a_num.is_ok() {
+    } else if b_num.is_ok() && a_num.is_err() {
         Ordering::Greater
-    } else if !a_num.is_ok() && !b_num.is_ok() {
+    } else if a_num.is_err() && b_num.is_err() {
         a.cmp(&b)
     } else {
         a_num.unwrap().cmp(&b_num.unwrap())

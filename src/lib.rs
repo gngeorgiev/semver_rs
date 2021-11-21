@@ -401,10 +401,7 @@ mod tests {
                 range, ver, loose
             );
             let opts = Options::builder().loose(loose).build();
-            let res = match super::satisfies(ver, range, Some(opts.clone())) {
-                Ok(res) => res,
-                Err(_) => false,
-            };
+            let res = super::satisfies(ver, range, Some(opts.clone())).unwrap_or(false);
             assert!(!res);
         }
     }

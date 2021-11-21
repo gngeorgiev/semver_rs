@@ -88,7 +88,7 @@ impl Comparator {
             let major = cap.get(3).map_or("", |v| v.as_str()).to_owned();
             let minor = cap.get(4).map_or("", |v| v.as_str()).to_owned();
             let patch = cap.get(5).map_or("", |v| v.as_str()).to_owned();
-            let prerelease = cap.get(6).map_or(None, |v| Some(v.as_str().to_owned()));
+            let prerelease = cap.get(6).map(|v| v.as_str().to_owned());
             Version::from_parts(major.parse()?, minor.parse()?, patch.parse()?, prerelease)
         };
 
@@ -109,7 +109,7 @@ impl Comparator {
     }
 
     fn replace_stars(comp: &str) -> String {
-        COMP_REPLACE_STARS.replace_all(&comp, "").to_string()
+        COMP_REPLACE_STARS.replace_all(comp, "").to_string()
     }
 
     fn replace_xranges(comp: &str, loose: bool) -> String {
@@ -228,7 +228,7 @@ impl Comparator {
                     major,
                     increment_version(&minor)
                 )
-            } else if prerelease.len() > 0 {
+            } else if !prerelease.is_empty() {
                 let prerelease = ensure_prerelease_dash(&prerelease);
                 format!(
                     "{}{}.{}.{}{} {}{}.{}.0",
@@ -290,7 +290,7 @@ impl Comparator {
                 } else {
                     format!(">={}.{}.0 <{}.0.0", major, minor, increment_version(&major),)
                 }
-            } else if prerelease.len() > 0 {
+            } else if !prerelease.is_empty() {
                 let prerelease = ensure_prerelease_dash(&prerelease);
                 if major == "0" {
                     if minor == "0" {
@@ -325,37 +325,35 @@ impl Comparator {
                         increment_version(&major)
                     )
                 }
-            } else {
-                if major == "0" {
-                    if minor == "0" {
-                        format!(
-                            ">={}.{}.{} <{}.{}.{}",
-                            major,
-                            minor,
-                            patch,
-                            major,
-                            minor,
-                            increment_version(&patch),
-                        )
-                    } else {
-                        format!(
-                            "=>{}.{}.{} <{}.{}.0",
-                            major,
-                            minor,
-                            patch,
-                            major,
-                            increment_version(&minor),
-                        )
-                    }
-                } else {
+            } else if major == "0" {
+                if minor == "0" {
                     format!(
-                        ">={}.{}.{} <{}.0.0",
+                        ">={}.{}.{} <{}.{}.{}",
                         major,
                         minor,
                         patch,
-                        increment_version(&major),
+                        major,
+                        minor,
+                        increment_version(&patch),
+                    )
+                } else {
+                    format!(
+                        "=>{}.{}.{} <{}.{}.0",
+                        major,
+                        minor,
+                        patch,
+                        major,
+                        increment_version(&minor),
                     )
                 }
+            } else {
+                format!(
+                    ">={}.{}.{} <{}.0.0",
+                    major,
+                    minor,
+                    patch,
+                    increment_version(&major),
+                )
             }
         });
 

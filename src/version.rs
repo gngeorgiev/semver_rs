@@ -44,7 +44,7 @@ impl<'p> Parseable<'p> for Version {
             let major = cap.get(1).map_or("0", |v| v.as_str());
             let minor = cap.get(2).map_or("0", |v| v.as_str());
             let patch = cap.get(3).map_or("0", |v| v.as_str());
-            let prerelease = cap.get(4).map_or(None, |v| Some(v.as_str().to_owned()));
+            let prerelease = cap.get(4).map(|v| v.as_str().to_owned());
             Version::from_parts(major.parse()?, minor.parse()?, patch.parse()?, prerelease)
         };
 
@@ -86,8 +86,7 @@ impl<'p> Version {
     pub fn from_parts(major: i64, minor: i64, patch: i64, prerelease: Option<String>) -> Self {
         let prerelease = match prerelease {
             Some(pre) => {
-                let split: Vec<&str> = pre.split(".").collect();
-                let prereleases = split.into_iter().map(|s| s.to_owned()).collect();
+                let prereleases = pre.split('.').map(|s| s.to_owned()).collect();
                 Some(prereleases)
             }
             None => None,
@@ -113,7 +112,7 @@ impl<'p> Version {
 
     pub fn has_prerelease(&self) -> bool {
         match self.prerelease {
-            Some(ref pre) => pre.len() > 0,
+            Some(ref pre) => !pre.is_empty(),
             None => false,
         }
     }
@@ -153,7 +152,7 @@ impl<'p> Version {
                 } else if a.clone().unwrap().eq(&b.clone().unwrap()) {
                     continue;
                 } else {
-                    return compare_identifiers(a.clone().unwrap(), b.clone().unwrap());
+                    return compare_identifiers(a.unwrap(), b.unwrap());
                 }
             }
         }

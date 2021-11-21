@@ -48,7 +48,7 @@ impl<'p> Parseable<'p> for Range {
     fn parse(range_input: &'p str, opts: Option<Options>) -> Result<Self, Error> {
         let loose = opts.clone().unwrap_or_default().loose;
 
-        if range_input.len() == 0 {
+        if range_input.is_empty() {
             let comp = Comparator::empty();
             return Ok(Range {
                 comparators: vec![vec![comp]],
@@ -58,19 +58,19 @@ impl<'p> Parseable<'p> for Range {
 
         let comparators_opts = opts.clone();
         let comparators_result: Result<Vec<Option<Vec<Comparator>>>, Error> = RANGE_OR
-            .split(&range_input)
+            .split(range_input)
             .map(move |range: &str| {
                 //1. trim the range
                 let range = range.trim();
 
                 //2. replace hyphens `1.2.3 - 1.2.4` => `>=1.2.3 <=1.2.4`
-                let range = if let Some(range) = Range::replace_hyphens(&range, loose)? {
+                let range = if let Some(range) = Range::replace_hyphens(range, loose)? {
                     range.to_string()
-                } else if let Some(range) = Range::replace_carets(&range)? {
+                } else if let Some(range) = Range::replace_carets(range)? {
                     range.to_string()
                 } else {
                     //3. trim the spaces around operators `> 1.2.3 < 1.2.5` => `>1.2.3 <1.2.5`
-                    let range = Range::trim_operators(&range);
+                    let range = Range::trim_operators(range);
 
                     //4. trim spaces around the tilde operator `~ 1.2.3` => `~1.2.3`
                     let range = Range::trim_tilde(&range);
@@ -85,12 +85,12 @@ impl<'p> Parseable<'p> for Range {
                 };
 
                 let comparators_parsed: Vec<String> = range
-                    .split(" ")
+                    .split(' ')
                     .map(|c| Comparator::normalize(c, loose))
                     .collect::<Vec<_>>();
 
                 let comparators_parsed = comparators_parsed.join(" ");
-                if comparators_parsed.len() == 0 {
+                if comparators_parsed.is_empty() {
                     let comp = Comparator::empty();
                     return Ok(Some(vec![comp]));
                 }
@@ -98,12 +98,10 @@ impl<'p> Parseable<'p> for Range {
                 // TODO: this split should yield an array with one empty string inside
                 // when used on an empty string, just like in the original npm package.
                 // The condition above is a workaround atm
-                let comparators_parsed: Vec<&str> =
-                    SPLIT_SPACES.split(&comparators_parsed).collect();
+                
 
                 let opts = comparators_opts.clone();
-                let comparators = comparators_parsed
-                    .into_iter()
+                let comparators = SPLIT_SPACES.split(&comparators_parsed)
                     .filter(|c| {
                         if loose {
                             COMPARATOR_LOOSE.is_match(c)
@@ -116,7 +114,7 @@ impl<'p> Parseable<'p> for Range {
 
                 match comparators {
                     Ok(comp) => {
-                        if comp.len() > 0 {
+                        if !comp.is_empty() {
                             Ok(Some(comp))
                         } else {
                             Ok(None)
@@ -128,9 +126,9 @@ impl<'p> Parseable<'p> for Range {
             .collect();
 
         let comparators: Vec<Vec<Comparator>> =
-            comparators_result?.into_iter().filter_map(|c| c).collect();
+            comparators_result?.into_iter().flatten().collect();
 
-        if comparators.len() == 0 {
+        if comparators.is_empty() {
             Err(Error::new(ErrorKind::InvalidRange(range_input.to_owned())))
         } else {
             Ok(Range { comparators, opts })
@@ -152,7 +150,7 @@ impl<'p> Range {
             let mut buf = String::new();
             SPLIT_SPACES.split(range).for_each(|s| {
                 buf.push_str(s);
-                buf.push_str(" ");
+                buf.push(' ');
             });
             buf.pop();
 
@@ -189,14 +187,14 @@ impl<'p> Range {
         let from_minor = match_at_index_str(&cap, 3);
         let from_patch = match_at_index_str(&cap, 4);
 
-        let comparator_from = if is_any_version(&from_major) {
+        let comparator_from = if is_any_version(from_major) {
             Comparator::empty()
-        } else if is_any_version(&from_minor) {
+        } else if is_any_version(from_minor) {
             Comparator::from_parts(
                 Operator::Gte,
                 Version::from_parts(from_major.parse()?, 0, 0, None),
             )
-        } else if is_any_version(&from_patch) {
+        } else if is_any_version(from_patch) {
             Comparator::from_parts(
                 Operator::Gte,
                 Version::from_parts(from_major.parse()?, from_minor.parse()?, 0, None),
@@ -211,21 +209,21 @@ impl<'p> Range {
         let to_patch = match_at_index_str(&cap, 10);
         let to_prerelease = match_at_index_str(&cap, 11);
 
-        let comparator_to = if is_any_version(&to_major) {
+        let comparator_to = if is_any_version(to_major) {
             Comparator::empty()
-        } else if is_any_version(&to_minor) {
+        } else if is_any_version(to_minor) {
             let mut to_major = to_major.parse()?;
             to_major += 1;
 
             Comparator::from_parts(Operator::Lt, Version::from_parts(to_major, 0, 0, None))
-        } else if is_any_version(&to_patch) {
+        } else if is_any_version(to_patch) {
             let mut to_minor = to_minor.parse()?;
             to_minor += 1;
             Comparator::from_parts(
                 Operator::Lt,
                 Version::from_parts(to_major.parse()?, to_minor, 0, None),
             )
-        } else if to_prerelease != "" {
+        } else if !to_prerelease.is_empty() {
             Comparator::from_parts(
                 Operator::Lte,
                 Version::from_parts(
@@ -258,9 +256,9 @@ impl<'p> Range {
         let prerelease = match_at_index_str(&cap, 4);
 
         let mut cmp = ComparatorPair(None, None);
-        if is_any_version(&major) {
+        if is_any_version(major) {
             cmp.0 = Some(Comparator::empty());
-        } else if is_any_version(&minor) {
+        } else if is_any_version(minor) {
             let major = major.parse()?;
             cmp.0 = Some(Comparator::from_parts(
                 Operator::Gte,
@@ -270,7 +268,7 @@ impl<'p> Range {
                 Operator::Lt,
                 Version::from_parts(major + 1, 0, 0, None),
             ));
-        } else if is_any_version(&patch) {
+        } else if is_any_version(patch) {
             let major = major.parse()?;
             let minor = minor.parse()?;
             if major == 0 {
@@ -292,10 +290,10 @@ impl<'p> Range {
                     Version::from_parts(major + 1, 0, 0, None),
                 ));
             }
-        } else if prerelease.len() > 0 {
+        } else if !prerelease.is_empty() {
             //this unwrap will never panic since we already verified that we have at least
             //one char in the string
-            let prerelease = if prerelease.chars().next().unwrap() == '-' {
+            let prerelease = if prerelease.starts_with('-') {
                 prerelease.to_string()
             } else {
                 format!("-{}", prerelease)
@@ -386,7 +384,7 @@ impl<'p> Range {
             .iter()
             .find(move |comparators| {
                 for c in comparators.iter() {
-                    if !c.test(&version) {
+                    if !c.test(version) {
                         return false;
                     }
                 }
@@ -403,13 +401,10 @@ impl<'p> Range {
                             continue;
                         }
 
-                        if v.has_prerelease() {
-                            if version.major == v.major
+                        if v.has_prerelease() && version.major == v.major
                                 && version.minor == v.minor
-                                && version.patch == v.patch
-                            {
-                                return true;
-                            }
+                                && version.patch == v.patch {
+                            return true;
                         }
                     }
 
@@ -432,7 +427,7 @@ mod tests {
         for v in v {
             let res = Range::replace_hyphens(v.0, false).unwrap();
             let comp = format!("{}", &res.unwrap());
-            assert!(!comp.contains("-"), "contains hyphen");
+            assert!(!comp.contains('-'), "contains hyphen");
             assert_eq!(comp, String::from(v.1));
         }
     }
