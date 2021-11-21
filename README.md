@@ -125,10 +125,3 @@ There are still a lot of string allocations that can be eliminated, especially i
 
 In conclussion `semver_rs` is faster than `semver_node` and slower than `steveklabnik/semver`. It's also as accurate
 in parsing as `semver_node`, while `steveklabnik/semver` couldn't handle 9 of the ranges.
-
-## Goals and the future
-
-This initial release aims at bringing this package out in the public and also as a baseline in terms of performance.
-From now on performance can be improved upon by keeping compatibility at the absolute maximum.
-In general the parsing algorithm itself is not optimal at a lot of places. There's also a lot of needless string and vector
-allocations at the moment which are leftovers from the prototyping phase of the package, that can be addressed gradually.
