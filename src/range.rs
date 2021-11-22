@@ -6,7 +6,7 @@ use crate::expressions::{
     RANGE_TRIM_CARET, RANGE_TRIM_OPERATORS, RANGE_TRIM_TILDE, SPLIT_SPACES,
 };
 use crate::operator::Operator;
-use crate::util::{is_any_version, match_at_index_str};
+use crate::util::{is_any_version, match_at_index};
 use crate::version::Version;
 use std::borrow::Cow;
 
@@ -49,15 +49,14 @@ impl<'p> Parseable<'p> for Range {
         let loose = opts.unwrap_or_default().loose;
 
         if range_input.is_empty() {
-            let comp = Comparator::empty();
             return Ok(Range {
-                comparators: vec![vec![comp]],
+                //TODO: Figure out how to make it work with only an empty vec to avoid allocating
+                comparators: vec![vec![]],
                 opts,
             });
         }
 
-        let comparators_opts = opts;
-        let comparators_result: Result<Vec<Option<Vec<Comparator>>>, Error> = RANGE_OR
+        let comparators = RANGE_OR
             .split(range_input)
             .map(move |range: &str| {
                 //1. trim the range
@@ -84,24 +83,22 @@ impl<'p> Parseable<'p> for Range {
                     range.to_string()
                 };
 
-                let comparators_parsed: Vec<String> = range
+                let comparators_parsed = range
                     .split(' ')
                     .map(|c| Comparator::normalize(c, loose))
-                    .collect::<Vec<_>>();
+                    .fold(String::new(), |acc, c| acc + &c + " ");
 
-                let comparators_parsed = comparators_parsed.join(" ");
+                let comparators_parsed = comparators_parsed.trim();
                 if comparators_parsed.is_empty() {
-                    let comp = Comparator::empty();
-                    return Ok(Some(vec![comp]));
+                    return Ok(Some(vec![]));
                 }
 
                 // TODO: this split should yield an array with one empty string inside
                 // when used on an empty string, just like in the original npm package.
                 // The condition above is a workaround atm
 
-                let opts = comparators_opts;
                 let comparators = SPLIT_SPACES
-                    .split(&comparators_parsed)
+                    .split(comparators_parsed)
                     .filter(|c| {
                         if loose {
                             COMPARATOR_LOOSE.is_match(c)
@@ -109,28 +106,20 @@ impl<'p> Parseable<'p> for Range {
                             true
                         }
                     })
-                    .map(move |r| Comparator::new(r.to_owned(), opts))
-                    .collect::<Result<Vec<_>, Error>>();
+                    .map(|r| Comparator::new(r, opts))
+                    .collect::<Result<Vec<Comparator>, Error>>()?;
 
-                match comparators {
-                    Ok(comp) => {
-                        if !comp.is_empty() {
-                            Ok(Some(comp))
-                        } else {
-                            Ok(None)
-                        }
-                    }
-                    Err(err) => Err(err),
-                }
+                Ok(match comparators.is_empty() {
+                    true => None,
+                    false => Some(comparators),
+                })
             })
-            .collect();
-
-        // TODO: can we avoid allocating so much here?
-        let comparators: Vec<Vec<Comparator>> = comparators_result?.into_iter().flatten().collect();
+            .collect::<Result<Vec<Option<Vec<Comparator>>>, Error>>()?;
 
         if comparators.is_empty() {
             Err(Error::InvalidRange(range_input.into()))
         } else {
+            let comparators = comparators.into_iter().flatten().collect();
             Ok(Range { comparators, opts })
         }
     }
@@ -146,12 +135,14 @@ impl<'p> Range {
         //the other regexes won't allocate if they don't match, however this one will always allocate
         //so we check whether there's a match
         if SPLIT_SPACES.is_match(range) {
-            //avoid collecting to not allocate an intermediate vec
-            let mut buf = String::new();
-            SPLIT_SPACES.split(range).for_each(|s| {
-                buf.push_str(s);
-                buf.push(' ');
-            });
+            let mut buf =
+                SPLIT_SPACES
+                    .split(range)
+                    .fold(String::with_capacity(range.len()), |mut acc, s| {
+                        acc.push_str(s);
+                        acc.push(' ');
+                        acc
+                    });
             buf.pop();
 
             Cow::Owned(buf)
@@ -182,10 +173,10 @@ impl<'p> Range {
             None => return Ok(None),
         };
 
-        let from = match_at_index_str(&cap, 1);
-        let from_major = match_at_index_str(&cap, 2);
-        let from_minor = match_at_index_str(&cap, 3);
-        let from_patch = match_at_index_str(&cap, 4);
+        let from = match_at_index(&cap, 1);
+        let from_major = match_at_index(&cap, 2);
+        let from_minor = match_at_index(&cap, 3);
+        let from_patch = match_at_index(&cap, 4);
 
         let comparator_from = if is_any_version(from_major) {
             Comparator::empty()
@@ -203,11 +194,11 @@ impl<'p> Range {
             Comparator::from_parts(Operator::Gte, Version::new(from).parse()?)
         };
 
-        let to = match_at_index_str(&cap, 7);
-        let to_major = match_at_index_str(&cap, 8);
-        let to_minor = match_at_index_str(&cap, 9);
-        let to_patch = match_at_index_str(&cap, 10);
-        let to_prerelease = match_at_index_str(&cap, 11);
+        let to = match_at_index(&cap, 7);
+        let to_major = match_at_index(&cap, 8);
+        let to_minor = match_at_index(&cap, 9);
+        let to_patch = match_at_index(&cap, 10);
+        let to_prerelease = match_at_index(&cap, 11);
 
         let comparator_to = if is_any_version(to_major) {
             Comparator::empty()
@@ -250,10 +241,10 @@ impl<'p> Range {
             None => return Ok(None),
         };
 
-        let major = match_at_index_str(&cap, 1);
-        let minor = match_at_index_str(&cap, 2);
-        let patch = match_at_index_str(&cap, 3);
-        let prerelease = match_at_index_str(&cap, 4);
+        let major = match_at_index(&cap, 1);
+        let minor = match_at_index(&cap, 2);
+        let patch = match_at_index(&cap, 3);
+        let prerelease = match_at_index(&cap, 4);
 
         let mut cmp = ComparatorPair(None, None);
         if is_any_version(major) {
