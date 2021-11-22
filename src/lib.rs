@@ -108,9 +108,8 @@ mod tests {
         ];
 
         for (input, output) in v {
-            println!("testing: clean: {} {}", input, output);
             let res = super::clean(input, None).expect(input);
-            assert_eq!(res, output, "{} => {}", input, output);
+            assert_eq!(res, output, "testing: clean {} => {}", input, output);
         }
     }
 
@@ -152,12 +151,29 @@ mod tests {
         ];
 
         for (v1, v2, loose) in v {
-            println!("testing compares: {} {} loose: {}", v1, v2, loose);
             let opts = Options::builder().loose(loose).build();
             let res = super::compare(v1, v2, Some(opts)).unwrap();
-            assert!(res == Ordering::Greater);
-            assert!(super::compare(v1, v1, Some(opts)).unwrap() == Ordering::Equal);
-            assert!(super::compare(v2, v2, Some(opts)).unwrap() == Ordering::Equal);
+            assert!(
+                res == Ordering::Greater,
+                "testing compares: {} {} loose: {}",
+                v1,
+                v2,
+                loose
+            );
+            assert!(
+                super::compare(v1, v1, Some(opts)).unwrap() == Ordering::Equal,
+                "testing compares: {} {} loose: {}",
+                v1,
+                v2,
+                loose
+            );
+            assert!(
+                super::compare(v2, v2, Some(opts)).unwrap() == Ordering::Equal,
+                "testing compares: {} {} loose: {}",
+                v1,
+                v2,
+                loose
+            );
         }
     }
 
@@ -204,12 +220,29 @@ mod tests {
         ];
 
         for (v1, v2, loose) in v {
-            println!("testing equality: {} {} loose: {}", v1, v2, loose);
             let opts = Options::builder().loose(loose).build();
             let res = super::compare(v1, v2, Some(opts)).unwrap();
-            assert!(res == Ordering::Equal);
-            assert!(super::cmp(v1, Operator::Gte, v2, Some(opts)).unwrap());
-            assert!(super::cmp(v1, Operator::Lte, v2, Some(opts)).unwrap());
+            assert!(
+                res == Ordering::Equal,
+                "testing equality: {} {} loose: {}",
+                v1,
+                v2,
+                loose
+            );
+            assert!(
+                super::cmp(v1, Operator::Gte, v2, Some(opts)).unwrap(),
+                "testing equality: {} {} loose: {}",
+                v1,
+                v2,
+                loose
+            );
+            assert!(
+                super::cmp(v1, Operator::Lte, v2, Some(opts)).unwrap(),
+                "testing equality: {} {} loose: {}",
+                v1,
+                v2,
+                loose
+            );
         }
     }
 
@@ -321,10 +354,9 @@ mod tests {
         ];
 
         for (range, ver, loose) in v {
-            println!("testing satisfies: {} {} loose: {}", range, ver, loose);
             let opts = Options::builder().loose(loose).build();
             let res = super::satisfies(ver, range, Some(opts)).unwrap();
-            assert!(res);
+            assert!(res, "testing satisfies: {} {} loose: {}", range, ver, loose);
         }
     }
 
@@ -407,13 +439,13 @@ mod tests {
         ];
 
         for (range, ver, loose) in v {
-            println!(
+            let opts = Options::builder().loose(loose).build();
+            let res = super::satisfies(ver, range, Some(opts)).unwrap_or(false);
+            assert!(
+                !res,
                 "testing satisfies_negative: {} {} loose: {}",
                 range, ver, loose
             );
-            let opts = Options::builder().loose(loose).build();
-            let res = super::satisfies(ver, range, Some(opts)).unwrap_or(false);
-            assert!(!res);
         }
     }
 
@@ -429,10 +461,9 @@ mod tests {
         ];
 
         for (range, ver) in v {
-            println!("testing unlocked_prerelease_range {} {}", &range, &ver);
             let opts = Options::builder().include_prerelease(true).build();
             let res = super::satisfies(ver, range, Some(opts)).unwrap();
-            assert!(res);
+            assert!(res, "testing unlocked_prerelease_range {} {}", &range, &ver);
         }
     }
 
@@ -441,10 +472,13 @@ mod tests {
         let v = vec![("^1.0.0", "1.0.0-rc1"), ("^1.2.3-rc2", "2.0.0")];
 
         for (range, ver) in v {
-            println!("testing unlocked_prerelease_range {} {}", &range, &ver);
             let opts = Options::builder().include_prerelease(true).build();
             let res = super::satisfies(ver, range, Some(opts)).unwrap();
-            assert!(!res);
+            assert!(
+                !res,
+                "testing unlocked_prerelease_range {} {}",
+                &range, &ver
+            );
         }
     }
 }
