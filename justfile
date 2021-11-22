@@ -25,3 +25,10 @@ bench:
     bash gen.sh
     cat combined.txt
     popd
+
+changelog:
+    #!/usr/bin/env bash
+    if [ ! $(which gren) ]; then
+        npm install -g gren
+    fi
+    gren changelog --generate --data-source=commits --override
