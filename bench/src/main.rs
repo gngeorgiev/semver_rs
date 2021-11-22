@@ -63,43 +63,43 @@ fn main() {
             );
         }
     } else if app.is_present("alloc") {
-        let _ = Version::new("1.2.3").parse().unwrap();
-        let _ = Range::new(">=1.2.3").parse().unwrap();
+        let _ = Version::new("1.2.3").parse().ok();
+        let _ = Range::new(">=1.2.3").parse().ok();
 
         println!(
             "semver_rs::Version {:?}",
-            count_alloc(|| Version::new("2").parse().unwrap()).0
+            count_alloc(|| Version::new("2").parse().ok()).0
         );
         println!(
             "semver_rs::Range {:?}",
-            count_alloc(|| Range::new(">=1.2.3").parse().unwrap()).0
+            count_alloc(|| Range::new(">=1.2.3").parse().ok()).0
         );
 
         println!(
             "semver::Version {:?}",
-            count_alloc(|| VersionOld::parse("1.2.3").unwrap()).0
+            count_alloc(|| VersionOld::parse("1.2.3").ok()).0
         );
 
         println!(
             "semver::VersionReq {:?}",
-            count_alloc(|| VersionReq::parse(">=1.2.3").unwrap()).0
+            count_alloc(|| VersionReq::parse(">=1.2.3").ok()).0
         );
 
         println!(
             "semver_rs version: 1.2.3 {}",
-            bench(|| Version::new("1.2.3").parse().unwrap())
+            bench(|| Version::new("1.2.3").parse().ok())
         );
         println!(
             "semver_rs range: >=1.2.3 {}",
-            bench(|| Range::new(">=1.2.3").parse().unwrap())
+            bench(|| Range::new(">=1.2.3").parse().ok())
         );
 
-        let ver = Version::new("1.2.3").parse().unwrap();
-        let range = Range::new(">=1.2.3").parse().unwrap();
-        println!(
-            "semver_rs satisfies: >=1.2.3 1.2.3 {}",
-            bench(|| range.test(&ver))
-        );
+        // let ver = Version::new("1.2.3").parse().ok();
+        // let range = Range::new(">=1.2.3").parse().ok();
+        // println!(
+        //     "semver_rs satisfies: >=1.2.3 1.2.3 {}",
+        //     bench(|| range.test(&ver))
+        // );
 
         println!(
             "semver version: 1.2.3 {}",

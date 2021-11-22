@@ -20,6 +20,14 @@ thiserror = "1.0.30"
 
 [dev_dependencies]
 serde_json = "1.0"
+criterion = "0.3"
 
 [features]
 default = []
+
+[[bench]]
+name = "version"
+harness = false
+
+[profile.bench]
+debug = true
