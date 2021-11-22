@@ -1,12 +1,16 @@
 #!/bin/bash
 
 pushd collect_packages || exit 1
-npm install
+if [[ ! -d "node_modules" ]]; then
+  npm install
+fi
 popd || exit 1
 node collect_packages > ranges.txt
 
 pushd bench_semver || exit 1
-npm install
+if [[ ! -d "node_modules" ]]; then
+  npm install
+fi
 popd || exit 1
 node bench_semver > semver_node_res.txt
 

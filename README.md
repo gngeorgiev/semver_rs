@@ -111,13 +111,13 @@ One trade-off this implementation had to make was a tiny bit of performance. Sin
 There are still a lot of string allocations that can be eliminated, especially in parsing Ranges and Versions with prereleases.
 
 ```shell
-┌─────────┬───────────────────────┬───────────┬───────────────┬────────┬────────────────────┐
-│ (index) │         name          │ satisfies │ not_satisfies │ errors │     average_us     │
-├─────────┼───────────────────────┼───────────┼───────────────┼────────┼────────────────────┤
-│    0    │     'semver_node'     │    14     │      450      │   1    │ 36.763440860215056 │
-│    1    │      'semver_rs'      │    14     │      450      │   1    │  9.5247311827957   │
-│    2    │ 'steveklabnik/semver' │    11     │      444      │   10   │ 0.3311827956989247 │
-└─────────┴───────────────────────┴───────────┴───────────────┴────────┴────────────────────┘
+┌─────────┬───────────────────────┬───────────┬───────────────┬────────┬─────────────────────┐
+│ (index) │         name          │ satisfies │ not_satisfies │ errors │     average_us      │
+├─────────┼───────────────────────┼───────────┼───────────────┼────────┼─────────────────────┤
+│    0    │     'semver_node'     │    14     │      451      │   1    │  32.68025751072961  │
+│    1    │      'semver_rs'      │    14     │      451      │   1    │  8.454935622317597  │
+│    2    │ 'steveklabnik/semver' │    11     │      445      │   10   │ 0.27682403433476394 │
+└─────────┴───────────────────────┴───────────┴───────────────┴────────┴─────────────────────┘
 ```
 
 In conclussion `semver_rs` is faster than `semver_node` and slower than `steveklabnik/semver`. It's also as accurate
