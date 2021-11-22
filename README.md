@@ -12,7 +12,7 @@ node package manager.
 Add this to your `[dependencies]` section in `Cargo.toml`:
 
 ```toml
-semver_rs = "0.1"
+semver_rs = "0.2"
 ```
 
 ## Usage
@@ -69,7 +69,7 @@ assert!(range.test(&ver));
 In order to allow serializing the semver structs allow the `serde` feature:
 
 ```toml
-semver_rs = { version = "0.1", features = ["serde"] }
+semver_rs = { version = "0.2", features = ["serde"] }
 ```
 
 ```rust
