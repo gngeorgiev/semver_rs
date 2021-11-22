@@ -2,6 +2,8 @@
 
 ## 0.2.0 (22/11/2021)
 
+### Special thanks to @mt-caret and @ansrivas for contributing 🎉
+
 - [Small refactoring of `comparator.rs` and `version.rs`](https://github.com/gngeorgiev/semver_rs/commit/24f2438781a5ab3ed01f16e868b7c7f8b3ec2ff7) - @gngeorgiev
 - [Add criterion bench](https://github.com/gngeorgiev/semver_rs/commit/6349cb021c5abb20d821a0f72b2ee9c904109b91) - @gngeorgiev
 - [Fix `IntoOptionsMaybe` usage in `builder.rs`](https://github.com/gngeorgiev/semver_rs/commit/105bf0fadd1dcf730aad3c841708aa2b11be7211) - @gngeorgiev
