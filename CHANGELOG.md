@@ -15,12 +15,12 @@
 - [Improve tests assertion logging in `lib.rs`](https://github.com/gngeorgiev/semver_rs/commit/0294e2da27f3cb0ee187feaebfc70e679bacee91) - @gngeorgiev
 - [fix bacon clippy](https://github.com/gngeorgiev/semver_rs/commit/baa78f8599930c4aa81d67939c8d3c32e4210768) - @gngeorgiev
 - [Optimize and refactor `version.rs`](https://github.com/gngeorgiev/semver_rs/commit/508b2c06c4869811100553204bd96ea355b951aa) - @gngeorgiev
-- [Remove `with_options_maybe` and add blanked `IntoOptionsMaybe` trait impl for `with_options`](https://github.com/gngeorgiev/semver_rs/commit/8919a7a3e9f40b35798b41e13e034b176756f4ae) - @gngeorgiev
+- [**BREAKING**: Remove `with_options_maybe` and add blanked `IntoOptionsMaybe` trait impl for `with_options`](https://github.com/gngeorgiev/semver_rs/commit/8919a7a3e9f40b35798b41e13e034b176756f4ae) - @gngeorgiev
 - [Add back docs and crates.io badges](https://github.com/gngeorgiev/semver_rs/commit/341c30a9711db9b9bb888962b3f82d6d1e59363d) - @gngeorgiev
 - [Fix CI badge](https://github.com/gngeorgiev/semver_rs/commit/a5c0cba35b77bf37a2d2f3ab7fc4403e194ba734) - @gngeorgiev
 - [Add `just ci` target](https://github.com/gngeorgiev/semver_rs/commit/0bab2831772d949105a04c8b5e9638fc7c6c391a) - @gngeorgiev
 - [migrate to github actions from travis](https://github.com/gngeorgiev/semver_rs/commit/a432ebc0e025bd44b8d34a711fad493a1b270f51) - @gngeorgiev
-- [Use `thiserror` instead of manually implementing `Error`](https://github.com/gngeorgiev/semver_rs/commit/cedfba24d94d0b56e331b067f9f847ba5732c239) - @gngeorgiev
+- [**BREAKING**: Use `thiserror` instead of manually implementing `Error`](https://github.com/gngeorgiev/semver_rs/commit/cedfba24d94d0b56e331b067f9f847ba5732c239) - @gngeorgiev
 - [add just bench target](https://github.com/gngeorgiev/semver_rs/commit/2cd801215600e27fade811ca115a57cca67ca7e0) - @gngeorgiev
 - [Remove pointless README subtext](https://github.com/gngeorgiev/semver_rs/commit/e744ba7e89b13e6776eb493bb3d18c009a8fa5ad) - @gngeorgiev
 - [Improve benchmarking instructions and setup. Update benchmark results](https://github.com/gngeorgiev/semver_rs/commit/bfb8ccb5430c751d6d6503c481d6c3736d3cb69e) - @gngeorgiev
