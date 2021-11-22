@@ -5,9 +5,9 @@ authors = ["gngeorgiev <gngeorgiev.it@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-semver = "0.9"
+semver = "1.0.4"
 semver_rs = { path = "../" }
-easybench = "0.1"
-alloc_counter = "0.0.2"
-regex = "1.1"
-clap = "2.33"
+easybench = "1.1.0"
+alloc_counter = "0.0.4"
+regex = "1.5.4"
+clap = "2.33.3"
