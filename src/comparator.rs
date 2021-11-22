@@ -63,11 +63,8 @@ impl Comparator {
         let cap = match opts.unwrap_or_default().loose {
             true => COMPARATOR_LOOSE.captures(comp),
             false => COMPARATOR.captures(comp),
-        };
-        let cap = match cap {
-            Some(cap) => cap,
-            None => return Err(Error::InvalidComparator(comp.into())),
-        };
+        }
+        .ok_or_else(|| Error::InvalidComparator(comp.into()))?;
 
         let operator = match cap.get(1) {
             Some(op) => {
@@ -141,15 +138,13 @@ impl Comparator {
                     Cow::Borrowed("*")
                 }
             } else if op != Operator::Empty && is_any_version {
-                let mut parsed_minor = 0;
+                let mut parsed_minor = if !is_any_minor {
+                    minor.parse::<usize>().unwrap()
+                } else {
+                    0
+                };
                 let mut parsed_major = major.parse::<usize>().unwrap();
-                let mut parsed_patch = patch;
-                if !is_any_minor {
-                    parsed_minor = minor.parse::<usize>().unwrap();
-                }
-                if is_any_patch {
-                    parsed_patch = "0"
-                }
+                let mut parsed_patch = if is_any_patch { "0" } else { patch };
 
                 if op == Operator::Gt {
                     op = Operator::Gte;

@@ -38,7 +38,7 @@ impl<'p> Parseable<'p> for Version {
             None => return Ok(Version::empty()),
         };
 
-        let v = if cap.get(1).map_or("", |v| v.as_str()) == "" {
+        let v = if cap.get(1).map_or("", |v| v.as_str()).is_empty() {
             Version::any()
         } else {
             let major = cap.get(1).map_or("0", |v| v.as_str());
