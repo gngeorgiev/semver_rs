@@ -6,11 +6,11 @@ use crate::expressions::{
     COMP_REPLACE_XRANGES_LOOSE,
 };
 use crate::operator::Operator;
-use crate::util::{ensure_prerelease_dash, increment_version, is_any_version, replacer};
+use crate::util::{get_prerelease_prefix, increment_version, is_any_version, replacer};
 use crate::version::Version;
 
-use std::cmp::Ordering;
 use std::fmt;
+use std::{borrow::Cow, cmp::Ordering};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -22,12 +22,11 @@ pub(crate) struct ComparatorPair(pub Option<Comparator>, pub Option<Comparator>)
 
 impl fmt::Display for ComparatorPair {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.0.is_some() && self.1.is_none() {
-            write!(f, "{}", self.0.clone().unwrap())
-        } else if self.0.is_some() && self.1.is_some() {
-            write!(f, "{} {}", self.0.clone().unwrap(), self.1.clone().unwrap())
-        } else {
-            Ok(())
+        match (self.0.as_ref(), self.1.as_ref()) {
+            (Some(c1), Some(c2)) => write!(f, "{} {}", c1, c2),
+            (Some(c1), None) => write!(f, "{}", c1),
+            (None, Some(c2)) => write!(f, "{}", c2),
+            (None, None) => Ok(()),
         }
     }
 }
@@ -60,14 +59,14 @@ impl Comparator {
         }
     }
 
-    pub fn new(comp: String, opts: Option<Options>) -> Result<Self, Error> {
+    pub fn new(comp: &str, opts: Option<Options>) -> Result<Self, Error> {
         let cap = match opts.unwrap_or_default().loose {
-            true => COMPARATOR_LOOSE.captures(&comp),
-            false => COMPARATOR.captures(&comp),
+            true => COMPARATOR_LOOSE.captures(comp),
+            false => COMPARATOR.captures(comp),
         };
         let cap = match cap {
             Some(cap) => cap,
-            None => return Err(Error::InvalidComparator(comp)),
+            None => return Err(Error::InvalidComparator(comp.into())),
         };
 
         let operator = match cap.get(1) {
@@ -85,9 +84,9 @@ impl Comparator {
         let version = if cap.get(2).is_none() {
             Version::any()
         } else {
-            let major = cap.get(3).map_or("", |v| v.as_str()).to_owned();
-            let minor = cap.get(4).map_or("", |v| v.as_str()).to_owned();
-            let patch = cap.get(5).map_or("", |v| v.as_str()).to_owned();
+            let major = cap.get(3).map_or("", |v| v.as_str());
+            let minor = cap.get(4).map_or("", |v| v.as_str());
+            let patch = cap.get(5).map_or("", |v| v.as_str());
             let prerelease = cap.get(6).map(|v| v.as_str().to_owned());
             Version::from_parts(major.parse()?, minor.parse()?, patch.parse()?, prerelease)
         };
@@ -100,91 +99,102 @@ impl Comparator {
     }
 
     pub fn normalize(input: &str, loose: bool) -> String {
-        let mut comp = String::from(input);
-        comp = Comparator::replace_carets(&comp, loose);
-        comp = Comparator::replace_tildes(&comp, loose);
-        comp = Comparator::replace_xranges(&comp, loose);
-        comp = Comparator::replace_stars(&comp);
-        comp
+        // TODO: Can we avoid using to_owned for each comparator function?
+        let mut comp = Comparator::replace_carets(input, loose).as_ref().to_owned();
+
+        comp = Comparator::replace_tildes(&comp, loose).as_ref().to_owned();
+
+        comp = Comparator::replace_xranges(&comp, loose)
+            .as_ref()
+            .to_owned();
+
+        Comparator::replace_stars(&comp).as_ref().to_owned()
     }
 
-    fn replace_stars(comp: &str) -> String {
-        COMP_REPLACE_STARS.replace_all(comp, "").to_string()
+    fn replace_stars(comp: &str) -> Cow<'_, str> {
+        COMP_REPLACE_STARS.replace_all(comp, "")
     }
 
-    fn replace_xranges(comp: &str, loose: bool) -> String {
-        let repl = replacer(|args: Vec<String>| {
-            let version = args[0].clone();
-            let mut op = args[1].clone();
-            let mut major = args[2].clone();
-            let mut minor = args[3].clone();
-            let mut patch = args[4].clone();
+    fn replace_xranges(comp: &str, loose: bool) -> Cow<'_, str> {
+        let repl = replacer(|args: &[String]| {
+            let version = args[0].as_str();
+            let mut op = args[1].as_str();
+            let major = args[2].as_str();
+            let minor = args[3].as_str();
+            let patch = args[4].as_str();
 
-            let is_any_major = is_any_version(&major);
-            let is_any_minor = is_any_major || is_any_version(&minor);
-            let is_any_patch = is_any_minor || is_any_version(&patch);
+            let is_any_major = is_any_version(major);
+            let is_any_minor = is_any_major || is_any_version(minor);
+            let is_any_patch = is_any_minor || is_any_version(patch);
             let is_any_version = is_any_patch;
 
             if op == "=" && is_any_version {
-                op = String::new();
+                op = ""
             }
 
-            let mut op = Operator::new(&op);
+            let mut op = Operator::new(op);
 
             if is_any_major {
                 if op == Operator::Lt || op == Operator::Gt {
-                    String::from("<0.0.0")
+                    Cow::Borrowed("<0.0.0")
                 } else {
-                    String::from("*")
+                    Cow::Borrowed("*")
                 }
             } else if op != Operator::Empty && is_any_version {
-                if is_any_minor {
-                    minor = String::from("0");
+                let mut parsed_minor = 0;
+                let mut parsed_major = major.parse::<usize>().unwrap();
+                let mut parsed_patch = patch;
+                if !is_any_minor {
+                    parsed_minor = minor.parse::<usize>().unwrap();
                 }
                 if is_any_patch {
-                    patch = String::from("0");
+                    parsed_patch = "0"
                 }
 
                 if op == Operator::Gt {
                     op = Operator::Gte;
                     if is_any_minor {
-                        major = increment_version(&major);
-                        minor = String::from("0");
-                        patch = String::from("0");
+                        parsed_major = increment_version(major);
+                        parsed_minor = 0;
+                        parsed_patch = "0"
                     } else if is_any_patch {
-                        minor = increment_version(&minor);
-                        patch = String::from("0");
+                        parsed_minor = increment_version(minor);
+                        parsed_patch = "0";
                     }
                 } else if op == Operator::Lte {
                     op = Operator::Lt;
                     if is_any_minor {
-                        major = increment_version(&major);
+                        parsed_major = increment_version(major);
                     } else {
-                        minor = increment_version(&minor);
+                        parsed_minor = increment_version(minor);
                     }
                 }
 
-                format!("{}{}.{}.{}", op, major, minor, patch)
+                Cow::Owned(format!(
+                    "{}{}.{}.{}",
+                    op, parsed_major, parsed_minor, parsed_patch
+                ))
             } else if is_any_minor {
-                format!(
+                Cow::Owned(format!(
                     "{}{}.0.0 {}{}.0.0",
                     Operator::Gte,
                     major,
                     Operator::Lt,
-                    increment_version(&major)
-                )
+                    increment_version(major)
+                ))
             } else if is_any_patch {
-                format!(
+                Cow::Owned(format!(
                     "{}{}.{}.0 {}{}.{}.0",
                     Operator::Gte,
                     major,
                     minor,
                     Operator::Lt,
                     major,
-                    increment_version(&minor)
-                )
+                    increment_version(minor)
+                ))
             } else {
-                version
+                // TODO: we might be able to get a reference to this
+                Cow::Owned(version.to_owned())
             }
         });
 
@@ -192,57 +202,56 @@ impl Comparator {
             true => COMP_REPLACE_XRANGES_LOOSE.replace_all(comp, repl),
             false => COMP_REPLACE_XRANGES.replace_all(comp, repl),
         }
-        .to_string()
     }
 
-    fn replace_tildes(comp: &str, loose: bool) -> String {
+    fn replace_tildes(comp: &str, loose: bool) -> Cow<'_, str> {
         //TODO: not yet sure why this workaround is needed
         if comp == "~" {
-            return String::from("*");
+            return Cow::Borrowed("*");
         }
 
-        let repl = replacer(|args: Vec<String>| {
-            let major = args[1].clone();
-            let minor = args[2].clone();
-            let patch = args[3].clone();
-            let prerelease = args[4].clone();
+        let repl = replacer(|args: &[String]| {
+            let major = args[1].as_str();
+            let minor = args[2].as_str();
+            let patch = args[3].as_str();
+            let prerelease = args[4].as_str();
 
-            if is_any_version(&major) {
-                String::new()
-            } else if is_any_version(&minor) {
-                format!(
+            if is_any_version(major) {
+                Cow::Borrowed("")
+            } else if is_any_version(minor) {
+                Cow::Owned(format!(
                     "{}{}.0.0 {}{}.0.0",
                     Operator::Gte,
                     major,
                     Operator::Lt,
-                    increment_version(&major)
-                )
-            } else if is_any_version(&patch) {
+                    increment_version(major)
+                ))
+            } else if is_any_version(patch) {
                 //'>=' + M + '.' + m + '.0 <' + M + '.' + (+m + 1) + '.0';
-                format!(
+                Cow::Owned(format!(
                     "{}{}.{}.0 {}{}.{}.0",
                     Operator::Gte,
                     major,
                     minor,
                     Operator::Lt,
                     major,
-                    increment_version(&minor)
-                )
+                    increment_version(minor)
+                ))
             } else if !prerelease.is_empty() {
-                let prerelease = ensure_prerelease_dash(&prerelease);
-                format!(
-                    "{}{}.{}.{}{} {}{}.{}.0",
+                Cow::Owned(format!(
+                    "{}{}.{}.{}{}{} {}{}.{}.0",
                     Operator::Gte,
                     major,
                     minor,
                     patch,
+                    get_prerelease_prefix(prerelease),
                     prerelease,
                     Operator::Lt,
                     major,
-                    increment_version(&minor)
-                )
+                    increment_version(minor)
+                ))
             } else {
-                format!(
+                Cow::Owned(format!(
                     "{}{}.{}.{} {}{}.{}.0",
                     Operator::Gte,
                     major,
@@ -250,8 +259,8 @@ impl Comparator {
                     patch,
                     Operator::Lt,
                     major,
-                    increment_version(&minor)
-                )
+                    increment_version(minor)
+                ))
             }
         });
 
@@ -259,101 +268,105 @@ impl Comparator {
             true => COMP_REPLACE_TILDES_LOOSE.replace_all(comp, repl),
             false => COMP_REPLACE_TILDES.replace_all(comp, repl),
         }
-        .to_string()
     }
 
-    fn replace_carets(comp: &str, loose: bool) -> String {
+    fn replace_carets(comp: &str, loose: bool) -> Cow<'_, str> {
         if comp == "^" {
             //TODO: not yet sure why this workaround is needed
-            return String::from("*");
+            return Cow::Borrowed("*");
         }
 
-        let repl = replacer(|args: Vec<String>| {
-            let major = args[1].clone();
-            let minor = args[2].clone();
-            let patch = args[3].clone();
-            let prerelease = args[4].clone();
+        let repl = replacer(|args: &[String]| {
+            let major = args[1].as_str();
+            let minor = args[2].as_str();
+            let patch = args[3].as_str();
+            let prerelease = args[4].as_str();
 
-            if is_any_version(&major) {
-                String::new()
-            } else if is_any_version(&minor) {
-                format!(">={}.0.0 <{}.0.0", major, increment_version(&major))
-            } else if is_any_version(&patch) {
+            if is_any_version(major) {
+                Cow::Borrowed("")
+            } else if is_any_version(minor) {
+                Cow::Owned(format!(">={}.0.0 <{}.0.0", major, increment_version(major)))
+            } else if is_any_version(patch) {
                 if major == "0" {
-                    format!(
+                    Cow::Owned(format!(
                         ">={}.{}.0 <{}.{}.0",
                         major,
                         minor,
                         major,
-                        increment_version(&minor)
-                    )
+                        increment_version(minor)
+                    ))
                 } else {
-                    format!(">={}.{}.0 <{}.0.0", major, minor, increment_version(&major),)
+                    Cow::Owned(format!(
+                        ">={}.{}.0 <{}.0.0",
+                        major,
+                        minor,
+                        increment_version(major),
+                    ))
                 }
             } else if !prerelease.is_empty() {
-                let prerelease = ensure_prerelease_dash(&prerelease);
                 if major == "0" {
                     if minor == "0" {
-                        format!(
-                            ">= {}.{}.{}{} <{}.{}.{}",
+                        Cow::Owned(format!(
+                            ">= {}.{}.{}{}{} <{}.{}.{}",
                             major,
                             minor,
                             patch,
+                            get_prerelease_prefix(prerelease),
                             prerelease,
                             major,
                             minor,
-                            increment_version(&patch)
-                        )
+                            increment_version(patch)
+                        ))
                     } else {
-                        format!(
+                        Cow::Owned(format!(
                             ">= {}.{}.{}{} <{}.{}.0",
                             major,
                             minor,
                             patch,
                             prerelease,
                             major,
-                            increment_version(&minor)
-                        )
+                            increment_version(minor)
+                        ))
                     }
                 } else {
-                    format!(
+                    Cow::Owned(format!(
                         ">={}.{}.{}{} <{}.0.0",
                         major,
                         minor,
                         patch,
                         prerelease,
-                        increment_version(&major)
-                    )
+                        increment_version(major)
+                    ))
                 }
             } else if major == "0" {
                 if minor == "0" {
-                    format!(
+                    Cow::Owned(format!(
                         ">={}.{}.{} <{}.{}.{}",
                         major,
                         minor,
                         patch,
                         major,
                         minor,
-                        increment_version(&patch),
-                    )
+                        increment_version(patch),
+                    ))
                 } else {
-                    format!(
+                    Cow::Owned(format!(
                         "=>{}.{}.{} <{}.{}.0",
                         major,
                         minor,
                         patch,
                         major,
-                        increment_version(&minor),
-                    )
+                        increment_version(minor),
+                    ))
                 }
             } else {
-                format!(
+                Cow::Owned(format!(
                     ">={}.{}.{} <{}.0.0",
                     major,
                     minor,
                     patch,
-                    increment_version(&major),
-                )
+                    increment_version(major),
+                ))
             }
         });
 
@@ -361,7 +374,6 @@ impl Comparator {
             true => COMP_REPLACE_CARETS_LOOSE.replace_all(comp, repl),
             false => COMP_REPLACE_CARETS.replace_all(comp, repl),
         }
-        .to_string()
     }
 
     pub fn test(&self, version: &Version) -> bool {
