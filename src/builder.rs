@@ -98,7 +98,7 @@ where
         }
     }
 
-    pub fn with_options<O: Into<Option<Options>>>(mut self, opts: O) -> Self {
+    pub fn with_options(mut self, opts: impl IntoOptionsMaybe) -> Self {
         self.opts = opts.into();
         self
     }
