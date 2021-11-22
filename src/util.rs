@@ -6,11 +6,11 @@ pub(crate) fn is_any_version(v: &str) -> bool {
     v.is_empty() || v == "*" || unicase::eq(v, "x")
 }
 
-pub(crate) fn match_at_index_str<'a>(v: &'a Captures, i: usize) -> &'a str {
+pub(crate) fn match_at_index<'a>(v: &'a Captures, i: usize) -> &'a str {
     v.get(i).map_or("", |v| v.as_str())
 }
 
-pub(crate) fn match_at_index(v: &Captures, i: usize) -> String {
+pub(crate) fn match_at_index_owned(v: &Captures, i: usize) -> String {
     v.get(i).map_or(String::new(), |v| v.as_str().to_owned())
 }
 
@@ -33,7 +33,7 @@ pub(crate) fn replacer<'a>(
     move |cap: &regex::Captures| {
         let mut args: Vec<String> = vec![];
         for i in 0..6 {
-            args.push(match_at_index(cap, i))
+            args.push(match_at_index_owned(cap, i))
         }
 
         func(args)
